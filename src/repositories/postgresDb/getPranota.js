@@ -1,4 +1,6 @@
+const repositories = require("../../config/database.js");
 const get_pranota_Pg = async (customer_name) => {
+    const poolPg = repositories.getDb()
     if (customer_name) {
         const result = await poolPg.query(`
             select 

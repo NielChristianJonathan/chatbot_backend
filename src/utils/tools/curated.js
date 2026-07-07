@@ -1,7 +1,11 @@
 const { poolPg } = require("../../config/supabase")
+const env = require("../../constant/env")
+const { handleError } = require("../../middleware/handleError")
+const { Tools } = require("../../repositories")
 const { ollamaEmbed } = require("../../services/chatbot.service")
 const { cosineSimilarity } = require("../../services/role.service")
 
+const tool = Tools[env.DB_MODE];
 const keyTool = [
     // Tools mencari detail container berdasarkan nomor container, nama vesel, id_req
     {
@@ -24,68 +28,9 @@ const keyTool = [
                 },
             },
             handler: async ({id_req, container_no, vessel_name, request_type, limit}) => {
-                console.log(`id_req: ${id_req}`)
-                console.log(`container_no: ${container_no}`)
-                console.log(`vessel_name: ${vessel_name}`)
-                console.log(`request_type: ${request_type}`)
-                const limitValue = parseInt(limit) || 1;
-                console.log(`limitvalue: ${limitValue}`)
-                const basic = await poolPg.query(`
-                    SELECT
-                        COUNT(*) AS total_container, COUNT(*) FILTER (WHERE ei = 'E') AS total_ekspor, COUNT(*) FILTER (WHERE ei = 'I') AS total_impor,(SELECT STRING_AGG(container_no, ', ') FROM (SELECT container_no FROM request_detail ORDER BY RANDOM() LIMIT $1 ) c ) AS contoh_container
-                    FROM request_detail;
-                    `, [limitValue]
-                );
-                console.log("Basic:")
-                console.log(basic.rows)
-                if (id_req) {
-                    const result = await poolPg.query(`
-                        select 
-                            rh.id_req, rd.ei as jenis_bongkaran, rh.request_date, rh.terminal_id,rh.vessel_id, rh.vessel_name, rh.vessel_name, rh.etd, rh.eta, rh.payment_status,rh.pod as asal_kota,rh.fpod as tujuan,rh.pol,rh.trade_type,rd.disch_load , rd.container_no,  rd.carrier_code, rd.start_date, rd.end_date, rd.container_disch_date, rd.container_delivery_date, rd.container_pol
-                        from request_header rh 
-                        left join request_detail rd on rd.id_req  = rh.id_req
-                        where rh.id_req = $1
-                        limit $2;
-                        `, [id_req, limitValue]
-                    );
-                    return {summary: basic.rows,data: result.rows}
-                } else if (container_no){
-                    const result = await poolPg.query(`
-                        select 
-                            rh.id_req, rd.ei as jenis_bongkaran, rh.request_date, rh.terminal_id,rh.vessel_id, rh.vessel_name, rh.vessel_name, rh.etd, rh.eta, rh.payment_status,rh.pod as asal_kota,rh.fpod as tujuan,rh.pol,rh.trade_type,rd.disch_load , rd.container_no,  rd.carrier_code, rd.start_date, rd.end_date, rd.container_disch_date, rd.container_delivery_date, rd.container_pol
-                        from request_header rh 
-                        left join request_detail rd on rd.id_req  = rh.id_req
-                        where rd.container_no = $1
-                        limit $2;
-                        `, [container_no, limitValue]
-                    );
-                    return {summary: basic.rows,data: result.rows}
-                } else if (vessel_name) {
-                    const result = await poolPg.query(`
-                        select 
-                            rh.id_req, rd.ei as jenis_bongkaran, rh.request_date, rh.terminal_id,rh.vessel_id, rh.vessel_name, rh.vessel_name, rh.etd, rh.eta, rh.payment_status,rh.pod as tujuan,rh.fpod as tujuan,rh.pol,rh.trade_type,rd.disch_load , rd.container_no,  rd.carrier_code, rd.start_date, rd.end_date, rd.container_disch_date, rd.container_delivery_date, rd.container_pol
-                        from request_header rh 
-                        left join request_detail rd on rd.id_req  = rh.id_req
-                        where rh.vessel_name = $1
-                        limit $2;
-                        `, [vessel_name, limitValue]
-                    );
-                    return {summary: basic.rows,data: result.rows}
-                } else if (request_type) {
-                    const result = await poolPg.query(`
-                        select 
-                            rh.id_req, rd.ei as jenis_bongkaran, rh.request_date, rh.terminal_id,rh.vessel_id, rh.vessel_name, rh.vessel_name, rh.etd, rh.eta, rh.payment_status,rh.pod as asal_kota,rh.fpod as tujuan,rh.pol,rh.trade_type,rd.disch_load , rd.container_no,  rd.carrier_code, rd.start_date, rd.end_date, rd.container_disch_date, rd.container_delivery_date, rd.container_pol
-                        from request_header rh 
-                        left join request_detail rd on rd.id_req = rh.id_req
-                        where rd.ei = $1
-                        limit $2;
-                        `, [request_type, limitValue]
-                    );
-                    return {summary: basic.rows,data: result.rows}
-                } else {
-                    return {summary: basic.rows}
-                } 
-            } 
+
+                return await tool.get_container_detail(id_req, container_no, vessel_name, request_type, limit)
+            }
         }
     },
     // Tools mencari Request di terminal mana
@@ -108,44 +53,7 @@ const keyTool = [
                 }, 
             },
             handler: async ({id_req, terminal_name}) => {
-                console.log(`id_req: ${id_req}`)
-                console.log(`terminal_name: ${terminal_name}`)
-                if (id_req) {
-                    const result = await poolPg.query(`
-                        select
-                            mt.terminal_name, rh.id_req, rh.request_date, rh.terminal_id,rh.vessel_id, rh.vessel_name, rh.vessel_name, rh.etd, rh.eta, rh.payment_status,rh.pod as asal_kota,rh.fpod as tujuan,rh.pol,rh.trade_type
-                        from mst_terminal mt 
-                        join request_header rh  on mt.terminal_id = rh.terminal_id 
-                        and mt.org_id = rh.org_id
-                        where rh.id_req = $1
-                        limit 10
-                        `, [id_req]
-                    );
-                    return result.rows
-                } else if (terminal_name){
-                    const result = await poolPg.query(`
-                        select
-                            mt.terminal_name, rh.id_req, rh.request_date, rh.terminal_id,rh.vessel_id, rh.vessel_name, rh.vessel_name, rh.etd, rh.eta, rh.payment_status,rh.pod as asal_kota,rh.fpod as tujuan,rh.pol,rh.trade_type
-                        from mst_terminal mt 
-                        join request_header rh  on mt.terminal_id = rh.terminal_id 
-                        and mt.org_id = rh.org_id
-                        where mt.terminal_name = $1
-                        limit 10
-                        `, [terminal_name]
-                    );
-                    return result.rows
-                } else {
-                    const result = await poolPg.query(`
-                        select
-                            mt.terminal_name, rh.id_req, rh.request_date, rh.terminal_id,rh.vessel_id, rh.vessel_name, rh.vessel_name, rh.etd, rh.eta, rh.payment_status,rh.pod as asal_kota,rh.fpod as tujuan,rh.pol,rh.trade_type
-                        from mst_terminal mt 
-                        join request_header rh  on mt.terminal_id = rh.terminal_id 
-                        and mt.org_id = rh.org_id
-                        limit 5
-                        `
-                    );
-                    return result.rows
-                }
+                return await tool.get_terminal(id_req, terminal_name)
             }
         }
     },
@@ -168,47 +76,7 @@ const keyTool = [
                 }, 
             },
             handler: async ({name, customer_code, limit}) => {
-                console.log(`nama: ${name}`)
-                console.log(`customer_code: ${customer_code}`)
-                const limitValue = parseInt(limit) || 1;
-                console.log(`limitvalue: ${limitValue}`)
-                const basic = await poolPg.query(`
-                    SELECT 
-                        (select count(1) as total_customer_master from mst_customer) as total_customer_keseluruhan, COUNT(DISTINCT mc."CUSTOMER_CODE") AS jumlah_customer_pada_request, count(*) as jumlah_pesanan, (SELECT STRING_AGG(format('%s (%s)', name_val, code_val), ', ') FROM (SELECT name_val, code_val FROM (SELECT DISTINCT mc2."NAME" AS name_val, mc2."CUSTOMER_CODE" AS code_val FROM request_header rh2 JOIN mst_customer mc2 ON rh2.customer_code = mc2."CUSTOMER_CODE") distinct_pairs ORDER BY RANDOM() LIMIT $1) c) AS contoh_nama_code_customer 
-                    FROM request_header rh 
-                    LEFT JOIN mst_customer mc 
-                    ON rh.customer_code = mc."CUSTOMER_CODE";
-                    `
-                    , [limitValue])
-
-
-                if (name) {
-                    const result = await poolPg.query(`
-                        select 
-                            mc."NAME" , mc."CUSTOMER_CODE", rh.id_req, rh.request_date, rh.terminal_id,rh.vessel_id, rh.vessel_name, rh.vessel_name, rh.etd, rh.eta, rh.payment_status,rh.pod as asal_kota,rh.fpod as tujuan,rh.pol,rh.trade_type
-                        from request_header rh 
-                        join mst_customer mc on
-                            rh.customer_code = mc."CUSTOMER_CODE"
-                        where mc."NAME" = $1
-                        limit $2;
-                        `, [name, limitValue]
-                    );
-                    return {summary: basic.rows,data: result.rows}
-                } else if (customer_code){
-                    const result = await poolPg.query(`
-                        select 
-                            mc."NAME" , mc."CUSTOMER_CODE", rh.id_req,  rh.request_date, rh.terminal_id,rh.vessel_id, rh.vessel_name, rh.vessel_name, rh.etd, rh.eta, rh.payment_status,rh.pod as asal_kota,rh.fpod as tujuan,rh.pol,rh.trade_type
-                        from request_header rh 
-                        join mst_customer mc on
-                            rh.customer_code = mc."CUSTOMER_CODE"
-                        where rh.customer_code = $1
-                        limit $2;
-                        `, [customer_code, limitValue]
-                    );
-                    return {summary: basic.rows,data: result.rows}
-                } else {
-                    return {summary: basic.rows}
-                }
+                return await tool.get_customer_info(name, customer_code, limit)
             }
         }
     },
@@ -229,29 +97,7 @@ const keyTool = [
                 }, 
             },
             handler: async ({customer_name}) => {
-                if (customer_name) {
-                    const result = await poolPg.query(`
-                        select 
-                            ph."BILLER_REQ_ID" as request_id, ph."TRX_NUMBER", pd."DESCRIPTION" , pd."COMPONENT_NAME" , pd."CONTAINER_TYPE" , pd."CONTAINER_STATUS", pd."BASIC_TARIF" , ph."TERMINAL_CODE", ph."SERVICE_GROUP_NAME", ph."CUSTOMER_NAME", ph."VESSEL_NAME", ph."VESSEL_VOYAGE", ph."TRADE_TYPE"  
-                        from pranota_header ph 
-                        join pranota_detail pd on
-                            ph."BILLER_REQ_ID" = pd."BILLER_REQ_ID" 
-                        where ph."CUSTOMER_NAME" = $1  ;
-                        `, [customer_name]
-                    );
-                    return result.rows
-                } else {
-                    const result = await poolPg.query(`
-                        select 
-                            ph."BILLER_REQ_ID" as request_id, ph."TRX_NUMBER", pd."DESCRIPTION" , pd."COMPONENT_NAME" , pd."CONTAINER_TYPE" , pd."CONTAINER_STATUS", pd."BASIC_TARIF" , ph."TERMINAL_CODE", ph."SERVICE_GROUP_NAME", ph."CUSTOMER_NAME", ph."VESSEL_NAME", ph."VESSEL_VOYAGE", ph."TRADE_TYPE"  
-                        from pranota_header ph 
-                        join pranota_detail pd on
-                            ph."BILLER_REQ_ID" = pd."BILLER_REQ_ID" 
-                        ;
-                        `
-                    );
-                    return result.rows
-                }
+                return await tool.get_pranota(customer_name)
             }
         }
     }

@@ -1,4 +1,6 @@
+const repositories = require("../../config/database.js");
 const get_terminal_Pg = async (id_req, terminal_name) => {
+    const poolPg = repositories.getDb();
     console.log(`id_req: ${id_req}`)
     console.log(`terminal_name: ${terminal_name}`)
     if (id_req) {

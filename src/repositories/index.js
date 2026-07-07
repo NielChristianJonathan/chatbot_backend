@@ -6,14 +6,14 @@ const { get_terminal_Pg } = require("./postgresDb/getTerminal.js")
 
 
 const Tools = {
-    "lokal": {
+    "local": {
         get_customer_info: get_customer_info_Pg,
         get_container_detail: get_container_detail_Pg,
         get_pranota: get_pranota_Pg,
         get_terminal: get_terminal_Pg 
     },
     "company": {
-       
+       get_customer_info: 1
     }
 }
 

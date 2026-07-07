@@ -5,10 +5,14 @@ const { poolPg } = require('./supabase.js');
 let db;
 
 const initDatabase = async () => {
-    const db = env.DB_MODE === "lokal"? await connectOracle : poolPg
+    console.log("Connecting database...")
+    db = env.DB_MODE === "local"?  poolPg : await connectOracle()
+    console.log("Database Connected")
+    console.log(env.DB_MODE === "local"? "PG": "Oracle")
 }
 
 const getDb = () => {
+    console.log("uhuyy")
     return db
 }
 

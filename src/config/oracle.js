@@ -15,5 +15,4 @@ const connectOracle = async() => {
     return await OracleDB.getConnection(dbConfig);
 }
 
-
 module.exports = {connectOracle}

@@ -13,6 +13,8 @@ const getFaq = async (req, res, next) => {
 
 const chat = async (req, res, next) => {
     try {
+        console.log(req.cookies.accessToken)
+        
         const result = await chatService.chatService(req.body, res, next);
         console.log(`result`)
         console.log(result)
