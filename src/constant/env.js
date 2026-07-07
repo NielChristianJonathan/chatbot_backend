@@ -1,0 +1,13 @@
+
+
+module.exports = {
+    OLLAMA_URL: process.env.OLLAMA_URL,
+    OLLAMA_MODEL: process.env.OLLAMA_MODEL,
+    OLLAMA_EMBED_MODEL: process.env.OLLAMA_EMBED_MODEL,
+    CONNECT_SUPABASE: process.env.CONNECT_SUPABASE,
+    JWT_SECRET_TOKEN: process.env.JWT_SECRET_TOKEN,
+    DB_MODE: process.env.DB_MODE,
+    TOSHUB_USER: process.env.TOSHUB_USER,
+    TOSHUB_PASSWORD: process.env.TOSHUB_PASSWORD,
+    TOSHUB_CONNECTSTRING: process.env.TOSHUB_CONNECTSTRING
+}
