@@ -33,7 +33,8 @@ Berikut cara penggunaan tools
     try {
         return await service.runToolLoop( messages, tools, temperature, 0);
     } catch(err) {
-        throw error
+        console.log(err)
+        throw err
     }
 }
 
@@ -105,7 +106,7 @@ service.runToolLoop = async ( messages, tools = [], temperature, iteration) => {
     if (iteration >= 3) {
         return "Maaf, saya tidak dapat menemukan jawaban yang cukup setelah beberapa percobaan.";
     }
-
+    
     try {
         const payload = {
             model: OLLAMA_MODEL,

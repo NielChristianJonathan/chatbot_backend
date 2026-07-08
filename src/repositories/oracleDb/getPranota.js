@@ -1,0 +1,128 @@
+const { sequelize } = require("../../config/oracle.js");
+const { AppError } = require("../../utils/appError.js");
+
+const get_pranota_Oracle = async (terminal_code, terminal_name, request_id, service_code, service_name, customer_code, customer_name, npwp, voyage, vessel_name, status, payment_code, trade_type, limit) => {
+    try {
+        const normalize_string = (value="") => value ? `${value}`.trim() : '';
+        const normalizeNumber = (value) => {
+            if (value === undefined || value === null || value === "") {
+                return null;
+            }
+
+            const number = Number(value);
+            return Number.isNaN(number) ? null : number;
+        };
+        const [result] = await sequelize.query(`
+            SELECT 
+            RH.*
+            , CURSOR (
+                    SELECT 
+                        PD.BILLER_REQ_ID AS REQUEST_ID
+                        , PD.LINE_NUMBER
+                        , PD.DESCRIPTION
+                        , PD.COMPONENT_CODE
+                        , PD.COMPONENT_NAME
+                        , TO_CHAR(PD.START_DATE, 'YYYY-MM-DD HH24:MI:SS') AS START_DATE
+                        , TO_CHAR(PD.END_DATE, 'YYYY-MM-DD HH24:MI:SS') AS END_DATE
+                        , PD.STR_START_DATE
+                        , PD.STR_END_DATE
+                        , PD.TARIF
+                        , PD.AMOUNT
+                        , PD.BASIC_TARIF
+                        , PD.QUANTITY
+                        , PD.CONTAINER_SIZE
+                        , PD.CONTAINER_TYPE
+                        , PD.CONTAINER_STATUS
+                        , PD.CONTAINER_HEIGHT
+                        , PD.HZ
+                        , PD.EI
+                        , PD.EQUIPMENT
+                        , PD.VIA
+                        , PD.ITEM_CODE
+                        , PD.OOG
+                        , PD.OD
+                        , PD.DG
+                        , PD.MD
+                        , PD.SLING
+                        , PD.CONTAINER_LIST
+                    FROM STG_PRANOTA_DETAIL PD WHERE PD.BILLER_REQ_ID = RH.REQUEST_ID
+                ) AS DETAIL_PRANOTA
+            FROM (
+                SELECT 
+                    PH.TERMINAL_CODE 
+                    , MT.TERMINAL_NAME 
+                    , MT.PORT_CODE AS TERMINAL_PORT_CODE
+                    , MT.STATUS AS TERMINAL_STATUS
+                    , PH.BILLER_REQ_ID AS REQUEST_ID
+                    , COALESCE(PH.INVOICE_NUMBER, PH.TRX_NUMBER) AS INVOICE_NUMBER
+                    , PH.SERVICE_GROUP_CODE
+                    , PH.SERVICE_GROUP_NAME
+                    , PH.SERVICE_CODE
+                    , PH.SERVICE_NAME 
+                    , PH.CURRENCY 
+                    , PH.CUSTOMER_CODE
+                    , PH.CUSTOMER_NAME 
+                    , PH.CUSTOMER_ADDRESS
+                    , PH.NPWP
+                    , PH.VESSEL_ID 
+                    , PH.VESSEL_NAME
+                    , PH.VESSEL_VOYAGE AS VOYAGE
+                    , PH.AMOUNT 
+                    , PH.PAYMENT_STATUS 
+                    , TO_CHAR(PH.PAYMENT_DATE, 'YYYY-MM-DD HH24:MI:SS') AS PAYMENT_DATE
+                    , DECODE(PH.STATUS, 'P', 'PAID', 'NOT PAID') AS STATUS
+                    , PH.PAYMENT_CODE
+                    , PH.TRADE_TYPE
+                    , PH.PAYMENT_COMPLETED AS FLAG_PAYMENT
+                    , PH.FLAG_INV_ARINVOICE AS FLAG_SEND_INVOICE
+                    , PH.AMOUNT_INVOICE AS AMOUNT_SEND_INVOICE
+                    , PH.EINVOICE_DATE AS SEND_INVOICE_DATE
+                    , PH.DISCOUNT 
+                    , PH.BILER_PAYMENT 
+                    , PH.NO_INTEGRATION_SAP
+                FROM STG_PRANOTA_HEADER PH
+                JOIN STG_MST_TERMINAL MT ON PH.TERMINAL_CODE = MT.TERMINAL_CODE 
+                WHERE 1 = 1
+                    AND (:TERMINAL_CODE IS NULL OR UPPER(MT.TERMINAL_CODE) LIKE '%' || UPPER(:TERMINAL_CODE) || '%')
+                    AND (:TERMINAL_NAME IS NULL OR UPPER(MT.TERMINAL_NAME) LIKE '%' || UPPER(:TERMINAL_NAME) || '%')
+                    AND (:REQUEST_ID IS NULL OR UPPER(PH.BILLER_REQ_ID) LIKE '%' || UPPER(:REQUEST_ID) || '%')
+                    AND (:SERVICE_CODE IS NULL OR UPPER(PH.SERVICE_CODE) LIKE '%' || UPPER(:SERVICE_CODE) || '%')
+                    AND (:SERVICE_NAME IS NULL OR UPPER(PH.SERVICE_NAME) LIKE '%' || UPPER(:SERVICE_NAME) || '%')
+                    AND (:CUSTOMER_CODE IS NULL OR UPPER(PH.CUSTOMER_CODE) LIKE '%' || UPPER(:CUSTOMER_CODE) || '%')
+                    AND (:CUSTOMER_NAME IS NULL OR UPPER(PH.CUSTOMER_NAME) LIKE '%' || UPPER(:CUSTOMER_NAME) || '%')
+                    AND (:NPWP IS NULL OR UPPER(PH.NPWP) LIKE '%' || UPPER(:NPWP) || '%')
+                    AND (:VOYAGE IS NULL OR UPPER(PH.VESSEL_VOYAGE) LIKE '%' || UPPER(:VOYAGE) || '%')
+                    AND (:VESSEL_NAME IS NULL OR UPPER(PH.VESSEL_NAME) LIKE '%' || UPPER(:VESSEL_NAME) || '%')
+                    AND (:STATUS IS NULL OR UPPER(PH.STATUS) LIKE '%' || UPPER(:STATUS) || '%')
+                    AND (:PAYMENT_CODE IS NULL OR UPPER(PH.PAYMENT_CODE) LIKE '%' || UPPER(:PAYMENT_CODE) || '%')
+                    AND (:TRADE_TYPE IS NULL OR UPPER(PH.TRADE_TYPE) LIKE '%' || UPPER(:TRADE_TYPE) || '%')
+                FETCH FIRST :LIMIT ROWS ONLY
+            ) RH
+            `, 
+            {
+                bind: {
+                    TERMINAL_CODE: normalize_string(terminal_code),
+                    TERMINAL_NAME: normalize_string(terminal_name),
+                    REQUEST_ID: normalize_string(request_id),
+                    SERVICE_CODE: normalize_string(service_code),
+                    SERVICE_NAME: normalize_string(service_name),
+                    CUSTOMER_CODE: normalize_string(customer_code),
+                    CUSTOMER_NAME: normalize_string(customer_name),
+                    NPWP: normalize_string(npwp),
+                    VOYAGE: normalize_string(voyage),
+                    VESSEL_NAME: normalize_string(vessel_name),
+                    STATUS: normalize_string(status),
+                    PAYMENT_CODE: normalize_string(payment_code),
+                    TRADE_TYPE: normalize_string(trade_type),
+                    LIMIT: normalizeNumber(limit) ?? 1
+                }
+            }
+        )
+        console.log(result)
+        return result
+    } catch(err) {
+        throw new AppError(err, 500)
+    }
+}
+
+module.exports = {get_pranota_Oracle}

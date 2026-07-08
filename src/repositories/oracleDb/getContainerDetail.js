@@ -1,66 +1,109 @@
-const repositories = require("../../config/database.js");
+const { sequelize } = require("../../config/oracle.js");
+const { AppError } = require("../../utils/appError.js");
 
-const get_container_detail_Oracle = async (id_req, container_no, vessel_name, request_type, limit) => {
-    const oracle = repositories.getDb()
-    console.log(`id_req: ${id_req}`)
-    console.log(`container_no: ${container_no}`)
-    console.log(`vessel_name: ${vessel_name}`)
-    console.log(`request_type: ${request_type}`)
-    const limitValue = parseInt(limit) || 1;
-    console.log(`limitvalue: ${limitValue}`)
-    const basic = await oracle.query(`
-        SELECT
-            COUNT(*) AS total_container, COUNT(*) FILTER (WHERE ei = 'E') AS total_ekspor, COUNT(*) FILTER (WHERE ei = 'I') AS total_impor,(SELECT STRING_AGG(container_no, ', ') FROM (SELECT container_no FROM request_detail ORDER BY RANDOM() LIMIT $1 ) c ) AS contoh_container
-        FROM request_detail;
-        `, [limitValue]
-    );
-    console.log("Basic:")
-    console.log(basic.rows)
-    if (id_req) {
-        const result = await oracle.query(`
-            select 
-                rh.id_req, rd.ei as jenis_bongkaran, rh.request_date, rh.terminal_id,rh.vessel_id, rh.vessel_name, rh.vessel_name, rh.etd, rh.eta, rh.payment_status,rh.pod as asal_kota,rh.fpod as tujuan,rh.pol,rh.trade_type,rd.disch_load , rd.container_no,  rd.carrier_code, rd.start_date, rd.end_date, rd.container_disch_date, rd.container_delivery_date, rd.container_pol
-            from request_header rh 
-            left join request_detail rd on rd.id_req  = rh.id_req
-            where rh.id_req = $1
-            limit $2;
-            `, [id_req, limitValue]
-        );
-        return {summary: basic.rows,data: result.rows}
-    } else if (container_no){
-        const result = await oracle.query(`
-            select 
-                rh.id_req, rd.ei as jenis_bongkaran, rh.request_date, rh.terminal_id,rh.vessel_id, rh.vessel_name, rh.vessel_name, rh.etd, rh.eta, rh.payment_status,rh.pod as asal_kota,rh.fpod as tujuan,rh.pol,rh.trade_type,rd.disch_load , rd.container_no,  rd.carrier_code, rd.start_date, rd.end_date, rd.container_disch_date, rd.container_delivery_date, rd.container_pol
-            from request_header rh 
-            left join request_detail rd on rd.id_req  = rh.id_req
-            where rd.container_no = $1
-            limit $2;
-            `, [container_no, limitValue]
-        );
-        return {summary: basic.rows,data: result.rows}
-    } else if (vessel_name) {
-        const result = await oracle.query(`
-            select 
-                rh.id_req, rd.ei as jenis_bongkaran, rh.request_date, rh.terminal_id,rh.vessel_id, rh.vessel_name, rh.vessel_name, rh.etd, rh.eta, rh.payment_status,rh.pod as tujuan,rh.fpod as tujuan,rh.pol,rh.trade_type,rd.disch_load , rd.container_no,  rd.carrier_code, rd.start_date, rd.end_date, rd.container_disch_date, rd.container_delivery_date, rd.container_pol
-            from request_header rh 
-            left join request_detail rd on rd.id_req  = rh.id_req
-            where rh.vessel_name = $1
-            limit $2;
-            `, [vessel_name, limitValue]
-        );
-        return {summary: basic.rows,data: result.rows}
-    } else if (request_type) {
-        const result = await oracle.query(`
-            select 
-                rh.id_req, rd.ei as jenis_bongkaran, rh.request_date, rh.terminal_id,rh.vessel_id, rh.vessel_name, rh.vessel_name, rh.etd, rh.eta, rh.payment_status,rh.pod as asal_kota,rh.fpod as tujuan,rh.pol,rh.trade_type,rd.disch_load , rd.container_no,  rd.carrier_code, rd.start_date, rd.end_date, rd.container_disch_date, rd.container_delivery_date, rd.container_pol
-            from request_header rh 
-            left join request_detail rd on rd.id_req = rh.id_req
-            where rd.ei = $1
-            limit $2;
-            `, [request_type, limitValue]
-        );
-        return {summary: basic.rows,data: result.rows}
-    } else {
-        return {summary: basic.rows}
-    } 
+const get_container_detail_Oracle = async (request_id, terminal_code, terminal_name, container_number, point, vessel_name, voyage, e_i, container_size, container_type, container_status, iso_code, limit) => {
+    try {
+        const normalize_string = (value="") => value ? `${value}`.trim() : '';
+        const normalizeNumber = (value) => {
+            if (value === undefined || value === null || value === "") {
+                return null;
+            }
+            
+            const number = Number(value);
+            return Number.isNaN(number) ? null : number;
+        };
+        
+        const [result] = await sequelize.query(`
+            SELECT 
+                CA.TML_CD AS TERMINAL_CODE
+                , MT.TERMINAL_NAME 
+                , MT.PORT_CODE AS TERMINAL_PORT_CODE
+                , MT.STATUS AS TERMINAL_STATUS
+                , CA.POINT 
+                , CA.NO_CONTAINER AS CONTAINER_NUMBER
+                , CA.E_I
+                , CASE
+                    WHEN MST.CLSS_CD IN ('IM') THEN 'I'
+                    WHEN MST.CLSS_CD IN ('EX') THEN 'E'
+                    ELSE 'UNKNOWN'
+                END EI_FORBILL
+                , CA.SIZE_CONT AS CONTAINER_SIZE
+                , CA.TYPE_CONT AS CONTAINER_TYPE
+                , CA.STATUS  AS CONTAINER_STATUS
+                , CA.HEIGHT  AS CONTAINER_HEIGHT
+                , CA.ISO_CODE
+                , CA.TEMPERATURE 
+                , TO_CHAR(TO_DATE(CA.PLUG_IN, 'DD-MM-YYYY HH24:MI:SS'), 'YYYY-MM-DD HH24:MI:SS') AS PLUGIN_DATE
+                , TO_CHAR(TO_DATE(CA.PLUG_OUT, 'DD-MM-YYYY HH24:MI:SS'), 'YYYY-MM-DD HH24:MI:SS') AS PLUGOUT_DATE
+                , CA.SLING
+                , CA.OPERATOR AS OPERATOR_CODE
+                , CA.OPERATOR_NAME 
+                , CA.CONTAINER_OWNERSHIP
+                , CA.HZ 
+                , CA.IMO
+                , CA.UN_NUMBER 
+                , CA.GROSS_WEIGHT
+                , CA.NET_WEIGHT 
+                , CA.VGM_WEIGHT 
+                , CA.SEAL_ID 
+                , CA.COMODITY
+                , CA.POD 
+                , CA.POL
+                , CA.FPOD
+                , CA.POR
+                , CA.VESSEL_CODE AS VESSEL_ID
+                , CA.VESSEL AS VESSEL_NAME
+                , CA.VOYAGE
+                , CA.CALL_SIGN 
+                , CA.BILLING_FLAG 
+                , CA.BILLING_REQUEST_ID AS REQUEST_ID
+                , CA.BILLING_PAIDTHRU AS PAIDTHRU
+                , CA.CONT_LOCATION AS ACTIVITY
+                , CA.LAST_POSITION AS POSITION_CONTAINER
+                , CA.CRNT_POW_CD AS POW_CODE
+            FROM V_CONTAINER_ACTIVITY  CA
+            JOIN STG_POI_UT_MST MST ON CA.TML_CD = MST.TML_CD AND CA.POINT = MST.TML_UT_ID 
+            JOIN STG_MST_TERMINAL MT ON CA.TML_CD = MT.TERMINAL_CODE 
+            WHERE 1 = 1
+                AND (:REQUEST_ID IS NULL OR UPPER(CA.BILLING_REQUEST_ID) LIKE '%' || UPPER(:REQUEST_ID) || '%')
+                AND (:TERMINAL_CODE IS NULL OR UPPER(CA.TML_CD) LIKE '%' || UPPER(:TERMINAL_CODE) || '%')
+                AND (:TERMINAL_NAME IS NULL OR UPPER(MT.TERMINAL_NAME) LIKE '%' || UPPER(:TERMINAL_NAME) || '%')
+                AND (:CONTAINER_NUMBER IS NULL OR UPPER(CA.NO_CONTAINER) LIKE '%' || UPPER(:CONTAINER_NUMBER) || '%')
+                AND (:POINT IS NULL OR UPPER(CA.POINT) LIKE '%' || UPPER(:POINT) || '%')
+                AND (:VESSEL_NAME IS NULL OR UPPER(CA.VESSEL) LIKE '%' || UPPER(:VESSEL_NAME) || '%')
+                AND (:VOYAGE IS NULL OR UPPER(CA.VOYAGE) LIKE '%' || UPPER(:VOYAGE) || '%')
+                AND (:E_I IS NULL OR UPPER(CA.E_I) LIKE '%' || UPPER(:E_I) || '%')
+                AND (:CONTAINER_SIZE IS NULL OR UPPER(CA.SIZE_CONT) LIKE '%' || UPPER(:CONTAINER_SIZE) || '%')
+                AND (:CONTAINER_TYPE IS NULL OR UPPER(CA.TYPE_CONT) LIKE '%' || UPPER(:CONTAINER_TYPE) || '%')
+                AND (:CONTAINER_STATUS IS NULL OR UPPER(CA.STATUS) LIKE '%' || UPPER(:CONTAINER_STATUS) || '%')
+                AND (:ISO_CODE IS NULL OR UPPER(CA.ISO_CODE) LIKE '%' || UPPER(:ISO_CODE) || '%')
+            FETCH FIRST :LIMIT ROWS ONLY
+            `,
+            {
+                bind: {
+                    REQUEST_ID: normalize_string(request_id), // DEL260000008242
+                    TERMINAL_CODE: normalize_string(terminal_code), // TP1Z3
+                    TERMINAL_NAME: normalize_string(terminal_name), // Tanjung Priok 1 Zona 3
+                    CONTAINER_NUMBER: normalize_string(container_number), //TAKU6091615
+                    POINT: normalize_string(point), // 20260708C711077
+                    VESSEL_NAME: normalize_string(vessel_name), //TANTO SAUDARA
+                    VOYAGE: normalize_string(voyage), // TNSD-0001
+                    E_I: normalize_string(e_i), //
+                    CONTAINER_SIZE: normalizeNumber(container_size), // 40, 45, 20
+                    CONTAINER_TYPE: normalize_string(container_type), // UC, OT, HQ, DRY, RFR, FLT, TNK
+                    CONTAINER_STATUS: normalize_string(container_status), // Empty Full
+                    ISO_CODE: normalize_string(iso_code), // 42P1, 4401
+                    LIMIT: normalizeNumber(limit)
+                }
+            }
+        )
+        console.log("Masuk detail Oracle")
+        console.log(result)
+        return result
+    } catch(err) {
+        throw new AppError(err, 500)
+    }
 }
+
+
+module.exports = {get_container_detail_Oracle}

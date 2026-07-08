@@ -14,12 +14,15 @@ const getFaq = async (req, res, next) => {
 const chat = async (req, res, next) => {
     try {
         console.log(req.cookies.accessToken)
-        
+        console.log("++++++++++++++++++++++++++++++++++++")
+        const {message} = req.body;
+        console.log(message)
+        const {username} = req.user
+        console.log(username)
+        console.log("++++++++++++++++++++++++++++++++++++")
         const result = await chatService.chatService(req.body, res, next);
-        console.log(`result`)
-        console.log(result)
         return res.json(result);
-    } catch (err) {
+    } catch (err) { 
         next(err);
     }
 }

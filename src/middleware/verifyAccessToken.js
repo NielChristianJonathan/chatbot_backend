@@ -8,10 +8,7 @@ const validationAccessToken = (req, res, next) => {
         if (!result) {
             throw err
         }
-        console.log("==========================")
-        console.log("Access Token")
-        console.log(result);
-        console.log("==========================")
+        req.user = result;
         next();
     } catch(err)  {
         throw new AppError("Unauthorized", 401)
