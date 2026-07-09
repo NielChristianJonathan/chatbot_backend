@@ -3,6 +3,7 @@ const { verifyAccessToken } = require("../utils/jwt");
 
 const validationAccessToken = (req, res, next) => {
     try {
+        console.log(req.cookies)
         const accessToken = req.cookies.accessToken;
         const result = verifyAccessToken(accessToken);
         if (!result) {

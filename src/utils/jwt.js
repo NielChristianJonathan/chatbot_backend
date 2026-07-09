@@ -1,10 +1,8 @@
 const jwt = require("jsonwebtoken");
 const { JWT_SECRET_TOKEN } = require("../constant/env");
-const generateAccessToken = (username) => {
+const generateAccessToken = (initial) => {
     return jwt.sign(
-        {
-            username
-        },
+        initial,
         JWT_SECRET_TOKEN,
         {
             expiresIn: "15m"
@@ -12,11 +10,10 @@ const generateAccessToken = (username) => {
     )
 }
 
-const generateRefreshToken = (username) => {
+const generateRefreshToken = (initial) => {
     return jwt.sign(
-        {
-            username
-        },
+        initial
+        ,
         JWT_SECRET_TOKEN,
         {
             expiresIn: "7d"

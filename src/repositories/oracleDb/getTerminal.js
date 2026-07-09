@@ -1,7 +1,7 @@
 const { sequelize } = require("../../config/oracle.js");
 const { AppError } = require("../../utils/appError.js");
 
-const properties_get_container_detail = 
+const properties_get_terminal = 
     {
         request_id: {type: "string", description: "merupakan id request 15 karakter dengan 3 huruf disambung dengan 12 angka acak, contoh: DEL267000133062"},
         terminal_code: {type: "string", description: "merupakan kode terminal, ambil ketika user bilang terminal code atau kode terminal, contoh: T009, TP1Z3"},
@@ -18,13 +18,10 @@ const properties_get_container_detail =
         limit: {type: "string", description: "jumlah data yang diminta, contoh: 5"}
     }
 
-
-
-
-const get_container_detail_Oracle = async (request_id, terminal_code, terminal_name, container_number, point, vessel_name, voyage, e_i, container_size, container_type, container_status, iso_code, limit) => {
+const get_terminal_Oracle = async (request_id, terminal_code, terminal_name, container_number, point, vessel_name, voyage, e_i, container_size, container_type, container_status, iso_code, limit) => {
     try {
         console.log(`===========================================================`)
-        console.log(`Container Tools`)
+        console.log(`Terminal Container Tools`)
         console.log(`===========================================================`)
         console.log(`request_id: ${request_id}`)
         console.log(`terminal_code: ${terminal_code}`)
@@ -37,18 +34,21 @@ const get_container_detail_Oracle = async (request_id, terminal_code, terminal_n
         console.log(`container_size: ${container_size}`)
         console.log(`container_status: ${container_status}`)
         console.log(`iso_code: ${iso_code}`)
+        console.log(`limit: ${normalizeNumber(limit)}`)
         const normalize_string = (value="") => value ? `${value}`.trim() : '';
         const normalizeNumber = (value) => {
             if (value === undefined || value === null || value === "") {
                 return 1;
             }
+            
             const number = Number(value);
+            
             if (Number.isNaN(number)) {
                 return 1;
             }
+
             return number <= 0 ? 1 : number;
         };
-        console.log(`limit: ${normalizeNumber(limit)}`)
         
         const [result] = await sequelize.query(`
             SELECT 
@@ -117,7 +117,7 @@ const get_container_detail_Oracle = async (request_id, terminal_code, terminal_n
                 AND (:LIMIT IS NULL OR ROWNUM <= :LIMIT)
             `,
             {
-                replacements: {
+                bind: {
                     REQUEST_ID: normalize_string(request_id), // DEL260000008242
                     TERMINAL_CODE: normalize_string(terminal_code), // TP1Z3
                     TERMINAL_NAME: normalize_string(terminal_name), // Tanjung Priok 1 Zona 3
@@ -131,8 +131,7 @@ const get_container_detail_Oracle = async (request_id, terminal_code, terminal_n
                     CONTAINER_STATUS: normalize_string(container_status), // Empty Full
                     ISO_CODE: normalize_string(iso_code), // 42P1, 4401
                     LIMIT: normalizeNumber(limit)
-                },
-                logging: console.log
+                }
             }
         )
         console.log("Masuk detail Oracle")
@@ -144,4 +143,4 @@ const get_container_detail_Oracle = async (request_id, terminal_code, terminal_n
 }
 
 
-module.exports = {get_container_detail_Oracle, properties_get_container_detail}
+module.exports = {get_terminal_Oracle, properties_get_terminal}

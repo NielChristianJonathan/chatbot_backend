@@ -43,14 +43,16 @@ const input_data = async (content, embedding) => {
 }
 
 
-const getPassUser = async (username) => {
+const getDataUser = async (username) => {
     try {
         const result = await poolPg.query(`
-            SELECT password FROM users WHERE username = $1
+            SELECT * FROM users WHERE username = $1
+            LIMIT 1
             `, [username]
         );
-        return result.rows
-    } catch {
+        return result.rows[0]
+    } catch(err) {
+        console.log(err)
         throw new AppError("Failed Database", 500)
     }
 }
@@ -81,4 +83,16 @@ const inputUser = async (username, hashPass) => {
     }
 }
 
-module.exports = { search_nearest_vector, input_data, getPassUser, getUsername, inputUser }
+const getTerminalCode = async (username) => {
+    try {
+    const result = await poolPg.query(`
+            SELECT * FROM users where username = $1
+            `, [username]
+        );
+        return result.rows
+    } catch {
+        throw new AppError("Failed Database", 500)
+    }
+}
+
+module.exports = { search_nearest_vector, input_data, getDataUser, getUsername, inputUser, getTerminalCode }

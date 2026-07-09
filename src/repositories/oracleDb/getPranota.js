@@ -1,8 +1,28 @@
 const { sequelize } = require("../../config/oracle.js");
 const { AppError } = require("../../utils/appError.js");
 
+const properties_get_pranota = {
+    terminal_code: {type: "string", description: "merupakan kode terminal, ambil ketika user bilang terminal code atau kode terminal, contoh: T009, TP1Z3"},
+    terminal_name: {type: "string", description: "merupakan nama terminal, contoh: Tanjung Priok 1"},
+    request_id: {type: "string", description: "merupakan id request 15 karakter dengan 3 huruf disambung dengan 12 angka acak, contoh: DEL267000133062"},
+    service_code: { type: "string", description: "Kode layanan (Service Code). Contoh: REC, DEL"},
+    service_name: { type: "string", description: "Nama layanan (Service Name). Contoh: RECEIVING, DELIVERY"},
+    customer_code: { type: "string", description: "Kode pelanggan (Customer Code). Contoh: 5400591"},
+    customer_name: { type: "string", description: "Nama pelanggan atau perusahaan."},
+    npwp: { type: "string", description: "Nomor Pokok Wajib Pajak (NPWP) pelanggan. Contoh: 03.218.406.1-701.000"},
+    voyage: { type: "string", description: "Kode voyage kapal dengan format XXXX-NNNN (4 huruf, tanda '-', lalu 4 angka). Contoh: TNSD-0001."},
+    vessel_name: { type: "string", description: "Nama kapal (Vessel Name). Contoh: MERATUS BORNEO"},
+    status: { type: "string", description: "Status permintaan atau transaksi. nilai: P atau S"},
+    payment_code: { type: "string", description: "Kode pembayaran (Payment Code). Contoh: 12509700003667"},
+    trade_type: { type: "string", description: "Jenis perdagangan (Trade Type). Contoh: I, O" },
+    limit: {type: "string", description: "jumlah data yang diminta, contoh: 5"}
+}
+
 const get_pranota_Oracle = async (terminal_code, terminal_name, request_id, service_code, service_name, customer_code, customer_name, npwp, voyage, vessel_name, status, payment_code, trade_type, limit) => {
     try {
+        console.log(`===========================================================`)
+        console.log(`Pranota Tools`)
+        console.log(`===========================================================`)
         const normalize_string = (value="") => value ? `${value}`.trim() : '';
         const normalizeNumber = (value) => {
             if (value === undefined || value === null || value === "") {
@@ -96,7 +116,7 @@ const get_pranota_Oracle = async (terminal_code, terminal_name, request_id, serv
                     AND (:STATUS IS NULL OR UPPER(PH.STATUS) LIKE '%' || UPPER(:STATUS) || '%')
                     AND (:PAYMENT_CODE IS NULL OR UPPER(PH.PAYMENT_CODE) LIKE '%' || UPPER(:PAYMENT_CODE) || '%')
                     AND (:TRADE_TYPE IS NULL OR UPPER(PH.TRADE_TYPE) LIKE '%' || UPPER(:TRADE_TYPE) || '%')
-                FETCH FIRST :LIMIT ROWS ONLY
+                    AND (:LIMIT IS NULL OR ROWNUM <= :LIMIT)
             ) RH
             `, 
             {
@@ -125,4 +145,4 @@ const get_pranota_Oracle = async (terminal_code, terminal_name, request_id, serv
     }
 }
 
-module.exports = {get_pranota_Oracle}
+module.exports = {get_pranota_Oracle, properties_get_pranota}

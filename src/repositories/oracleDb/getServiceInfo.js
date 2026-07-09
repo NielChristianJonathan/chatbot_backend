@@ -1,8 +1,20 @@
 const { sequelize } = require("../../config/oracle.js");
 const { AppError } = require("../../utils/appError.js");
 
+
+const properties_get_service = {
+    terminal_code: {type: "string", description: "merupakan kode terminal, ambil ketika user bilang terminal code atau kode terminal, contoh: T009, TP1Z3"},
+    terminal_name: {type: "string", description: "merupakan nama terminal, contoh: Tanjung Priok 1"},
+    service_code: {type: "string", description: "Kode layanan (Service Code). Contoh: SAR, RTC"},
+    service_name: {type: "string", description: "Nama layanan (Service Name). Contoh: STACKING EX STRIPPING, RELOCATION LINI 1 LINI 2 STUFFING - COC"},
+    limit: {type: "number", description: "Jumlah maksimum data yang dikembalikan. Default 1 jika tidak diisi atau bernilai kurang dari atau sama dengan 0." }
+}
+
 const get_service_Oracle = async (terminal_code, terminal_name, service_code, service_name, limit) => {
     try {
+        console.log(`===========================================================`)
+        console.log(`Service Tools`)
+        console.log(`===========================================================`)
         const normalize_string = (value="") => value ? `${value}`.trim() : '';
         const normalizeNumber = (value) => {
             if (value === undefined || value === null || value === "") {
@@ -36,7 +48,7 @@ const get_service_Oracle = async (terminal_code, terminal_name, service_code, se
                 AND (:TERMINAL_NAME IS NULL OR UPPER(MT.TERMINAL_NAME) LIKE '%' || UPPER(:TERMINAL_NAME) || '%')
                 AND (:SERVICE_CODE IS NULL OR UPPER(MS.SERVICE_CODE) LIKE '%' || UPPER(:SERVICE_CODE) || '%')
                 AND (:SERVICE_NAME IS NULL OR UPPER(MS.SERVICE_NAME) LIKE '%' || UPPER(:SERVICE_NAME) || '%')
-                FETCH FIRST :LIMIT ROWS ONLY
+                AND (:LIMIT IS NULL OR ROWNUM <= :LIMIT)
             ) MS
             `,
             {
@@ -56,4 +68,4 @@ const get_service_Oracle = async (terminal_code, terminal_name, service_code, se
     }
 }
 
-module.exports = {get_service_Oracle}
+module.exports = {get_service_Oracle, properties_get_service}

@@ -1,8 +1,29 @@
 const { sequelize } = require("../../config/oracle.js");
 const { AppError } = require("../../utils/appError.js");
 
+
+properties_get_customer_info = {
+    terminal_code: { type: "string", description: "Kode terminal. Contoh: TPM, PTL"},
+    terminal_name: { type: "string", description: "Nama terminal. Contoh: Terminal Petikemas Makasar, Terminal Petikemas Pantoloan"},
+    customer_id: { type: "string", description: "ID pelanggan. Contoh: 56680"},
+    customer_code: { type: "string", description: "Kode pelanggan. Contoh: 2X167948"},
+    customer_name: { type: "string", description: "Nama pelanggan atau perusahaan. Contoh: MITRA TIRTA LOKALESTARI"},
+    npwp: { type: "string", description: "Nomor Pokok Wajib Pajak (NPWP) pelanggan. Contoh: 01.447.238.5-331.000"},
+    limit: { type: "number", description: "Jumlah maksimum data yang dikembalikan. Default 1 jika tidak diisi atau bernilai kurang dari atau sama dengan 0." }
+}
+
 const get_customer_info_Oracle = async (terminal_code, terminal_name, customer_id, customer_code, customer_name, npwp, limit) => {
     try {
+        console.log(`===========================================================`)
+        console.log(`Customer Tools`)
+        console.log(`===========================================================`)
+        console.log(`terminal_code: ${terminal_code}`)
+        console.log(`terminal_name: ${terminal_name}`)
+        console.log(`customer_id: ${customer_id}`)
+        console.log(`customer_name: ${customer_name}`)
+        console.log(`npwp: ${npwp}`)
+        console.log(`limit: ${limit}`)
+
         const normalize_string = (value="") => value ? `${value}`.trim() : '';
         const normalizeNumber = (value) => {
             if (value === undefined || value === null || value === "") {
@@ -68,14 +89,14 @@ const get_customer_info_Oracle = async (terminal_code, terminal_name, customer_i
                     AND (:CUSTOMER_CODE IS NULL OR UPPER(MC.CUSTOMER_CODE) LIKE '%' || UPPER(:CUSTOMER_CODE) || '%')
                     AND (:CUSTOMER_NAME IS NULL OR UPPER(COALESCE(MC.NAME, MC.CUSTOMER_LABEL)) LIKE '%' || UPPER(:CUSTOMER_NAME) || '%')
                     AND (:NPWP IS NULL OR UPPER(MC.NPWP) LIKE '%' || UPPER(:NPWP) || '%')
-                FETCH FIRST :LIMIT ROWS ONLY
+                    AND (:LIMIT IS NULL OR ROWNUM <= :LIMIT)
             ) MC
             `,
             {
                 bind: {
                     TERMINAL_CODE: normalize_string(terminal_code),
                     TERMINAL_NAME: normalize_string(terminal_name),
-                    CUSTOMER_ID: normalizeNumber(customer_id),
+                    CUSTOMER_ID: normalize_string(customer_id),
                     CUSTOMER_CODE: normalize_string(customer_code),
                     CUSTOMER_NAME: normalize_string(customer_name),
                     NPWP: normalize_string(npwp),
@@ -90,4 +111,4 @@ const get_customer_info_Oracle = async (terminal_code, terminal_name, customer_i
     }
 }
 
-module.exports = {get_customer_info_Oracle}
+module.exports = {get_customer_info_Oracle, properties_get_customer_info}

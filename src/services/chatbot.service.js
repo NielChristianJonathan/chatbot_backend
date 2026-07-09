@@ -5,29 +5,19 @@ const { search_nearest_vector } = require("./pg.services");
 
 const service = {};
 
-service.ollamaChatBoth = async (prompt, temperature = 0.5, context, tools, history = []) => {
+service.ollamaChatBoth = async (base_prompt, prompt, temperature = 0.5, context, tools, history = []) => {
+    const pesan = `CONTEXT:
+${context}
+
+Pertanyaan:
+${prompt}`;
     messages = [
         {
             role:"sistem",
-            content:`kamu adalah asisten database yang sedang menggunakan tools dan RAG
-Gunakan informasi yang berada di user message, hasil RAG adalah informasi yang dapat digunakan untuk menjawab pertanyan user juga.
-Jika tidak ada yang relevan, Gunakan tools yang tersedia untuk menjawab pertanyaan user.
-Jika hasil dari satu tool tidak cukup atau tidak relevan untuk menjawab pertanyaan, coba panggil tool lain yang tersedia.
-Jangan mengarang jawaban. Jawab hanya berdasarkan data yang didapat dari tools.
-Jika setelah mencoba tools yang tersedia datanya masih tidak cukup, jelaskan ke user informasi tambahan apa yang dibutuhkan.
-Berikut cara penggunaan tools
-- vessel_name adalah nama kapal
-- terminal_name adalah nama terminal
-- terminal_code adalah kode terminal
-- ei: jenis bongkaran (E = Ekspor, I= Impor)
-- etd: estimasi waktu department / kepergian
-- eta: estimasi waktu kedatangan
-- total_customer_keseluruhan: total customer keseluruhan
-- jumlah_customer_pada_request: total customer yang melakukan request`
+            content:`${base_prompt}`
         },
         ...history,
-        {role: "assistant", content: context},
-        {role: "user", content: `${prompt}`}
+        {role: "user", content: pesan}
     ]
     
     try {
@@ -40,15 +30,18 @@ Berikut cara penggunaan tools
 
 
 
-service.ollamaChatRAG = async (prompt, temperature = 0.5, context, history = []) => {
-    const pesan = `kamu adalah asisten 
-Gunakan informasi berikut untuk menjawab, gunakan hanya yang relevan saja, jika tidak ada yang relevan, jawab dengan "Data tidak tersedia":
-CONTEXT:
+service.ollamaChatRAG = async (base_prompt, prompt, temperature = 0.5, context, history = []) => {
+    
+    const pesan = `CONTEXT:
 ${context}
 
 Pertanyaan:
 ${prompt}`;
     const message = [
+        {
+            role:"sistem",
+            content: `${base_prompt}`
+        },
         ...history,
         { role: "user", content: pesan}
     ]
@@ -64,9 +57,9 @@ ${prompt}`;
             OLLAMA_URL + '/api/chat', 
             payload, 
             {
-            responseType: 'json',
-            timeout: 0
-        }
+                responseType: 'json',
+                timeout: 0
+            }
         );
         // console.log(response.data.message.content)
         return response.data.message.content
@@ -78,23 +71,11 @@ ${prompt}`;
 }
 
 
-service.ollamaChatTool = async (prompt, temperature = 0.1, tools = [], history = []) => {
+service.ollamaChatTool = async (base_prompt, prompt, temperature = 0.1, tools = [], history = []) => {
     const messages = [
         { 
             role: "system", 
-            content: `Kamu adalah asisten database. Gunakan tools yang tersedia untuk menjawab pertanyaan user.
-Jika hasil dari satu tool tidak cukup atau tidak relevan untuk menjawab pertanyaan, coba panggil tool lain yang tersedia.
-Jangan mengarang jawaban. Jawab hanya berdasarkan data yang didapat dari tools.
-Jika setelah mencoba tools yang tersedia datanya masih tidak cukup, jelaskan ke user informasi tambahan apa yang dibutuhkan.
-Berikut cara penggunaan tools
-- vessel_name adalah nama kapal
-- terminal_name adalah nama terminal
-- terminal_code adalah kode terminal
-- ei: jenis bongkaran (E = Ekspor, I= Impor)
-- etd: estimasi waktu department / kepergian
-- eta: estimasi waktu kedatangan
-- total_customer_keseluruhan: total customer keseluruhan
-- jumlah_customer_pada_request: total customer yang melakukan request` 
+            content: `${base_prompt}` 
         },
         ...history,
         { role: "user", content: prompt}
@@ -102,12 +83,47 @@ Berikut cara penggunaan tools
     return await service.runToolLoop( messages, tools, temperature, 0);
 };
 
+service.ollamaChat = async (base_prompt, prompt, temperature = 0.5, history = []) => {
+    const message = [
+        {
+            role:"sistem",
+            content: `${base_prompt}`
+        },
+        ...history,
+        { role: "user", content: prompt}
+    ]
+
+    try {
+        const payload = {
+            model: OLLAMA_MODEL,
+            messages: message,
+            stream: false,
+            options: { temperature, num_ctx: 8192 }
+        };
+        const response = await axios.post(
+            OLLAMA_URL + '/api/chat', 
+            payload, 
+            {
+                responseType: 'json',
+                timeout: 0
+            }
+        );
+        // console.log(response.data.message.content)
+        return response.data.message.content
+
+
+    } catch(err) {
+        throw error;
+    }
+}
+
 service.runToolLoop = async ( messages, tools = [], temperature, iteration) => {
     if (iteration >= 3) {
         return "Maaf, saya tidak dapat menemukan jawaban yang cukup setelah beberapa percobaan.";
     }
     
     try {
+        
         const payload = {
             model: OLLAMA_MODEL,
             messages: messages,
@@ -126,6 +142,7 @@ service.runToolLoop = async ( messages, tools = [], temperature, iteration) => {
         const tool_calls = message.tool_calls || "";
 
         if (tool_calls.length === 0) {
+            console.log("Keluar")
             return message.content;
         }
 
@@ -147,6 +164,7 @@ service.runToolLoop = async ( messages, tools = [], temperature, iteration) => {
 
             messages.push({
                 role: "tool",
+                tool_name: toolCall.function.name,
                 content: JSON.stringify(result)
             });
         }
@@ -157,6 +175,7 @@ service.runToolLoop = async ( messages, tools = [], temperature, iteration) => {
         throw error;
     }
 };
+
 
 service.normalizeEmbedding = (embedding) => {
     const norm = Math.sqrt(

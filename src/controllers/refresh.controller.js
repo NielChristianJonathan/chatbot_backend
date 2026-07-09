@@ -3,8 +3,10 @@ const { AppError } = require("../utils/appError");
 
 const refreshAccessController = async(req, res, next) => {
     try {
-        const {username} = req.user;
-        const result = refreshAccessService(username);
+        const {username, terminalCode} = req.user;
+
+        console.log(username)
+        const result = refreshAccessService(username, terminalCode);
         const accessToken = result.accessToken;
         res.cookie("accessToken", accessToken, {
             httpOnly: true,

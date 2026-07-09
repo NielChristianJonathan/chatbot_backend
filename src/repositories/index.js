@@ -3,6 +3,8 @@ const { get_container_detail_Oracle } = require("./oracleDb/getContainerDetail.j
 const { get_customer_info_Oracle } = require("./oracleDb/getCustomerInfo.js")
 const { get_pranota_Oracle } = require("./oracleDb/getPranota.js")
 const { get_service_Oracle } = require("./oracleDb/getServiceInfo.js")
+const { get_terminal_Oracle } = require("./oracleDb/getTerminal.js")
+const { get_vessel_Oracle } = require("./oracleDb/getVessel.js")
 const { get_container_detail_Pg } = require("./postgresDb/getContainerDetail.js")
 const { get_customer_info_Pg } = require("./postgresDb/getCustomerInfo.js")
 const { get_pranota_Pg } = require("./postgresDb/getPranota.js")
@@ -20,7 +22,9 @@ const Tools = {
         get_customer_info: get_customer_info_Oracle,
         get_container_detail: get_container_detail_Oracle,
         get_pranota: get_pranota_Oracle,
-        get_service: get_service_Oracle
+        get_terminal: get_terminal_Oracle,
+        get_service: get_service_Oracle,
+        get_vessel: get_vessel_Oracle
     }
 }
 
