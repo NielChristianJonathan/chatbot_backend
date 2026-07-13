@@ -3,7 +3,7 @@ const { AppError } = require("../../utils/appError.js");
 
 const properties_get_pranota = {
     terminal_code: {type: "string", description: "merupakan kode terminal, ambil ketika user bilang terminal code atau kode terminal, contoh: T009, TP1Z3"},
-    terminal_name: {type: "string", description: "merupakan nama terminal, contoh: Tanjung Priok 1"},
+    // terminal_name: {type: "string", description: "merupakan nama terminal, contoh: Tanjung Priok 1"},
     request_id: {type: "string", description: "merupakan id request 15 karakter dengan 3 huruf disambung dengan 12 angka acak, contoh: DEL267000133062"},
     service_code: { type: "string", description: "Kode layanan (Service Code). Contoh: REC, DEL"},
     service_name: { type: "string", description: "Nama layanan (Service Name). Contoh: RECEIVING, DELIVERY"},
@@ -104,7 +104,6 @@ const get_pranota_Oracle = async (terminal_code, terminal_name, request_id, serv
                 JOIN STG_MST_TERMINAL MT ON PH.TERMINAL_CODE = MT.TERMINAL_CODE 
                 WHERE 1 = 1
                     AND (:TERMINAL_CODE IS NULL OR UPPER(MT.TERMINAL_CODE) LIKE '%' || UPPER(:TERMINAL_CODE) || '%')
-                    AND (:TERMINAL_NAME IS NULL OR UPPER(MT.TERMINAL_NAME) LIKE '%' || UPPER(:TERMINAL_NAME) || '%')
                     AND (:REQUEST_ID IS NULL OR UPPER(PH.BILLER_REQ_ID) LIKE '%' || UPPER(:REQUEST_ID) || '%')
                     AND (:SERVICE_CODE IS NULL OR UPPER(PH.SERVICE_CODE) LIKE '%' || UPPER(:SERVICE_CODE) || '%')
                     AND (:SERVICE_NAME IS NULL OR UPPER(PH.SERVICE_NAME) LIKE '%' || UPPER(:SERVICE_NAME) || '%')
@@ -122,7 +121,7 @@ const get_pranota_Oracle = async (terminal_code, terminal_name, request_id, serv
             {
                 bind: {
                     TERMINAL_CODE: normalize_string(terminal_code),
-                    TERMINAL_NAME: normalize_string(terminal_name),
+                    // TERMINAL_NAME: normalize_string(terminal_name),
                     REQUEST_ID: normalize_string(request_id),
                     SERVICE_CODE: normalize_string(service_code),
                     SERVICE_NAME: normalize_string(service_name),

@@ -26,11 +26,16 @@ const get_vessel_Oracle = async (terminal_code, terminal_name, voyage, vessel_na
         const normalize_string = (value="") => value ? `${value}`.trim() : '';
         const normalizeNumber = (value) => {
             if (value === undefined || value === null || value === "") {
-                return null;
+                return 1;
             }
             
             const number = Number(value);
-            return Number.isNaN(number) ? null : number;
+            
+            if (Number.isNaN(number)) {
+                return 1;
+            }
+
+            return number <= 0 ? 1 : number;
         };
         
         const [result] = await sequelize.query(`

@@ -8,10 +8,6 @@ const validationRefreshToken = (req, res, next) => {
         if (!user) {
             throw new AppError("Session Timed Out", 410);
         }
-        console.log("===================================")
-        console.log("Refresh Token");
-        console.log(user);
-        console.log("===================================")
         req.user = user;
         next()
     } catch(err) {

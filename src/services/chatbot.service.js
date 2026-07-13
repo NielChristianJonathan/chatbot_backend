@@ -2,6 +2,7 @@
 const { OLLAMA_EMBED_MODEL, OLLAMA_URL, OLLAMA_MODEL } = require("../constant/env");
 const axios = require("axios");
 const { search_nearest_vector } = require("./pg.services");
+const { getTerminalCode } = require("../repositories/terminal");
 
 const service = {};
 
@@ -19,6 +20,7 @@ ${prompt}`;
         ...history,
         {role: "user", content: pesan}
     ]
+    console.log(messages)
     
     try {
         return await service.runToolLoop( messages, tools, temperature, 0);
@@ -71,7 +73,7 @@ ${prompt}`;
 }
 
 
-service.ollamaChatTool = async (base_prompt, prompt, temperature = 0.1, tools = [], history = []) => {
+service.ollamaChatTool = async (base_prompt, prompt, temperature = 0.1, tools = [], history = [], terminalCode) => {
     const messages = [
         { 
             role: "system", 
@@ -80,7 +82,7 @@ service.ollamaChatTool = async (base_prompt, prompt, temperature = 0.1, tools = 
         ...history,
         { role: "user", content: prompt}
     ];
-    return await service.runToolLoop( messages, tools, temperature, 0);
+    return await service.runToolLoop( messages, tools, temperature, 0, terminalCode);
 };
 
 service.ollamaChat = async (base_prompt, prompt, temperature = 0.5, history = []) => {
@@ -92,6 +94,7 @@ service.ollamaChat = async (base_prompt, prompt, temperature = 0.5, history = []
         ...history,
         { role: "user", content: prompt}
     ]
+    console.log(message)
 
     try {
         const payload = {
@@ -117,35 +120,35 @@ service.ollamaChat = async (base_prompt, prompt, temperature = 0.5, history = []
     }
 }
 
-service.runToolLoop = async ( messages, tools = [], temperature, iteration) => {
+service.runToolLoop = async ( messages, tools = [], temperature, iteration, terminalCode) => {
     if (iteration >= 3) {
         return "Maaf, saya tidak dapat menemukan jawaban yang cukup setelah beberapa percobaan.";
     }
-    
     try {
-        
         const payload = {
             model: OLLAMA_MODEL,
             messages: messages,
             stream: false,
-            options: { temperature, num_ctx: 8192 },
+            options: { temperature },
             tools: tools
         };
 
         console.log(`[Iterasi ${iteration}] Memanggil Ollama...`);
+        console.log(messages)
         const response = await axios.post(OLLAMA_URL + '/api/chat', payload, {
             responseType: 'json',
             timeout: 0
         });
 
         const message = response.data.message;
-        const tool_calls = message.tool_calls || "";
+        const tool_calls = message.tool_calls || [];
 
-        if (tool_calls.length === 0) {
+        if (tool_calls.length <= 0) {
             console.log("Keluar")
             return message.content;
         }
 
+        
         messages.push({
             role: "assistant",
             content: message.content || "",
@@ -158,14 +161,38 @@ service.runToolLoop = async ( messages, tools = [], temperature, iteration) => {
                 console.log(`Tool ${toolCall.function.name} tidak ditemukan, skip.`);
                 continue;
             }
-
+            console.log(`-----------------------------------------------`);
             console.log(`[Iterasi ${iteration}] Memanggil tool: ${toolCall.function.name}`, toolCall.function.arguments);
-            const result = await toool.handler(toolCall.function.arguments);
+            // const args = toool.function.parameters.properties;
+            // const parameter = toolCall.function.arguments;
 
+            // if (("terminal_name" in parameter) && terminalCode) {
+            //     const terminalCodeParam = await getTerminalCode(parameter.terminal_name)
+            //     console.log(`CODE: ${terminalCodeParam}`)
+
+            // }
+            // console.log(toolCall.function)
+            // if ("")
+
+            // if ("terminal_code" in args && terminalCode) {
+            //     toolCall.function.arguments.terminal_code = terminalCode;
+            //     toolCall.function.arguments.terminal_name = '';
+            //     console.log(toolCall.function.arguments);
+            // }
+            
+            console.log(`-----------------------------------------------`);
+
+            const result = await toool.handler(toolCall.function.arguments);
+            
+            
             messages.push({
                 role: "tool",
                 tool_name: toolCall.function.name,
                 content: JSON.stringify(result)
+            });
+            messages.push({
+                role: "system",
+                content: "Ingat: jawab HANYA dalam Bahasa Indonesia, jangan tampilkan format JSON/tabel mentah, jangan melakukan kalkulasi tambahan sendiri — cukup laporkan data yang relevan secara ringkas."
             });
         }
         return await service.runToolLoop(messages, tools, temperature, iteration + 1);

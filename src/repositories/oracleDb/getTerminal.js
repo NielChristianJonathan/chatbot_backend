@@ -20,21 +20,21 @@ const properties_get_terminal =
 
 const get_terminal_Oracle = async (request_id, terminal_code, terminal_name, container_number, point, vessel_name, voyage, e_i, container_size, container_type, container_status, iso_code, limit) => {
     try {
-        console.log(`===========================================================`)
-        console.log(`Terminal Container Tools`)
-        console.log(`===========================================================`)
-        console.log(`request_id: ${request_id}`)
-        console.log(`terminal_code: ${terminal_code}`)
-        console.log(`terminal_name: ${terminal_name}`)
-        console.log(`container_number: ${container_number}`)
-        console.log(`point: ${point}`)
-        console.log(`vessel_name: ${vessel_name}`)
-        console.log(`voyage: ${voyage}`)
-        console.log(`e_i: ${e_i}`)
-        console.log(`container_size: ${container_size}`)
-        console.log(`container_status: ${container_status}`)
-        console.log(`iso_code: ${iso_code}`)
-        console.log(`limit: ${normalizeNumber(limit)}`)
+        // console.log(`===========================================================`)
+        // console.log(`Terminal Container Tools`)
+        // console.log(`===========================================================`)
+        // console.log(`request_id: ${request_id}`)
+        // console.log(`terminal_code: ${terminal_code}`)
+        // console.log(`terminal_name: ${terminal_name}`)
+        // console.log(`container_number: ${container_number}`)
+        // console.log(`point: ${point}`)
+        // console.log(`vessel_name: ${vessel_name}`)
+        // console.log(`voyage: ${voyage}`)
+        // console.log(`e_i: ${e_i}`)
+        // console.log(`container_size: ${container_size}`)
+        // console.log(`container_status: ${container_status}`)
+        // console.log(`iso_code: ${iso_code}`)
+        // console.log(`limit: ${normalizeNumber(limit)}`)
         const normalize_string = (value="") => value ? `${value}`.trim() : '';
         const normalizeNumber = (value) => {
             if (value === undefined || value === null || value === "") {

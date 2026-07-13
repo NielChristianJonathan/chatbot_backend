@@ -132,7 +132,6 @@ const get_container_detail_Oracle = async (request_id, terminal_code, terminal_n
                     ISO_CODE: normalize_string(iso_code), // 42P1, 4401
                     LIMIT: normalizeNumber(limit)
                 },
-                logging: console.log
             }
         )
         console.log("Masuk detail Oracle")

@@ -13,25 +13,21 @@ const getFaq = async (req, res, next) => {
 
 const chat = async (req, res, next) => {
     try {
-        console.log("HAloooooo")
-        const body = req.body;
-        console.log(body)
         const username = req.user.username;
         const terminalCode = req.user.terminalCode;
-        const userMessage = body.message?.trim();
-        const sessionId = body.sessionId?.trim();
-        const accessToken = body.cookies;
+        const userMessage = req.body.message?.trim();
+        const sessionId = req.body.sessionId?.trim();
+        const accessToken = req.cookies;
+        const terminalAccess = req.user.terminalAccess;
 
-        console.log("++++++++++++++++++++++++++++++++++++");
-        console.log(terminalCode);
-        console.log("++++++++++++++++++++++++++++++++++++");
         const {message} = req.body;
         console.log(message)
         // const {username} = req.user
         // console.log(username)
-        const result = await chatService.chatService({userMessage, sessionId, accessToken, terminalCode});
+        const result = await chatService.chatService({userMessage, sessionId, accessToken, terminalCode, terminalAccess});
         return res.json(result);
     } catch (err) { 
+        console.log(err)
         next(err);
     }
 }
