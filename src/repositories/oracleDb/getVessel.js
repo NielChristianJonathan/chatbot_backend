@@ -3,8 +3,7 @@ const { AppError } = require("../../utils/appError.js");
 
 const properties_get_vessel = 
     {
-        terminal_code: {type: "string", description: "merupakan kode terminal, ambil ketika user bilang terminal code atau kode terminal, contoh: T009, TP1Z3"},
-        terminal_name: {type: "string", description: "merupakan nama terminal, contoh: Tanjung Priok 1"},
+        terminal_code: {type: "string", description: "merupakan kode terminal pelabuhan"},
         voyage: {type: "string", description: "Kode voyage dengan format XXXX-NNNN, yaitu 4 huruf diikuti tanda '-' dan 4 angka. Contoh: TNSD-0001."},
         vessel_name: {type: "string", description: "merupakan nama kapal, contoh: TANTO SAUDARA"},
         limit: {type: "string", description: "jumlah data yang diminta, contoh: 5"}

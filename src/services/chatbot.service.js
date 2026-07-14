@@ -1,154 +1,103 @@
 
 const { OLLAMA_EMBED_MODEL, OLLAMA_URL, OLLAMA_MODEL } = require("../constant/env");
 const axios = require("axios");
-const { search_nearest_vector } = require("./pg.services");
+const { search_nearest_vector, inputMessage } = require("./pg.services");
 const { getTerminalCode } = require("../repositories/terminal");
+const { chatApi } = require("../utils/api");
+const { getMessage, getPayload, getToken, getRagMessage } = require("../utils/chat_tools");
 
 const service = {};
 
-service.ollamaChatBoth = async (base_prompt, prompt, temperature = 0.5, context, tools, history = []) => {
-    const pesan = `CONTEXT:
-${context}
-
-Pertanyaan:
-${prompt}`;
-    messages = [
-        {
-            role:"sistem",
-            content:`${base_prompt}`
-        },
-        ...history,
-        {role: "user", content: pesan}
-    ]
-    console.log(messages)
-    
+service.ollamaChatBoth = async ({base_prompt, prompt, temperature = 0.5, context, tools, history = [], username, accessToken}) => {
+    const pesan = getRagMessage({context, prompt})
+    const messages = getMessage({base_prompt, history, pesan})
     try {
-        return await service.runToolLoop( messages, tools, temperature, 0);
+        return await service.runToolLoop( {messages, tools, temperature, iteration: 0, username, accessToken, rag: context});
     } catch(err) {
         console.log(err)
         throw err
     }
 }
 
-
-
-service.ollamaChatRAG = async (base_prompt, prompt, temperature = 0.5, context, history = []) => {
+service.ollamaChatRAG = async ({base_prompt, prompt, temperature = 0.5, context, history = [], accessToken, username}) => {
     
-    const pesan = `CONTEXT:
-${context}
-
-Pertanyaan:
-${prompt}`;
-    const message = [
-        {
-            role:"sistem",
-            content: `${base_prompt}`
-        },
-        ...history,
-        { role: "user", content: pesan}
-    ]
-
+    const pesan = getRagMessage({context, prompt})
+    const message = getMessage({base_prompt, history, pesan})
     try {
-        const payload = {
-            model: OLLAMA_MODEL,
-            messages: message,
-            stream: false,
-            options: { temperature, num_ctx: 8192 }
-        };
-        const response = await axios.post(
-            OLLAMA_URL + '/api/chat', 
-            payload, 
-            {
-                responseType: 'json',
-                timeout: 0
-            }
-        );
-        // console.log(response.data.message.content)
+        const payload = getPayload({message, temperature});
+        const response = await chatApi(payload)
+        const {promptTokens, completionTokens, totalToken} = getToken({response}) 
+        await inputMessage({
+            sessionId: accessToken,
+            username,
+            role: "Assistant",
+            context: response.data.message.content,
+            rag: context,
+            prompt_eval_count: promptTokens, 
+            eval_count: completionTokens, 
+            totalToken
+        })
         return response.data.message.content
-
-
     } catch(err) {
         throw error;
     }
 }
 
 
-service.ollamaChatTool = async (base_prompt, prompt, temperature = 0.1, tools = [], history = [], terminalCode) => {
-    const messages = [
-        { 
-            role: "system", 
-            content: `${base_prompt}` 
-        },
-        ...history,
-        { role: "user", content: prompt}
-    ];
-    return await service.runToolLoop( messages, tools, temperature, 0, terminalCode);
+service.ollamaChatTool = async ({base_prompt, prompt, temperature = 0.1, tools = [], history = [], username, accessToken}) => {
+    const messages = getMessage({base_prompt, history, prompt})
+    return await service.runToolLoop({messages, tools, temperature, iteration: 0, username, accessToken});
 };
 
-service.ollamaChat = async (base_prompt, prompt, temperature = 0.5, history = []) => {
-    const message = [
-        {
-            role:"sistem",
-            content: `${base_prompt}`
-        },
-        ...history,
-        { role: "user", content: prompt}
-    ]
-    console.log(message)
-
+service.ollamaChat = async ({base_prompt, prompt, temperature = 0.5, history = []}, accessToken, username) => {
+    const message = getMessage({base_prompt, history, prompt})
     try {
-        const payload = {
-            model: OLLAMA_MODEL,
-            messages: message,
-            stream: false,
-            options: { temperature, num_ctx: 8192 }
-        };
-        const response = await axios.post(
-            OLLAMA_URL + '/api/chat', 
-            payload, 
-            {
-                responseType: 'json',
-                timeout: 0
-            }
-        );
-        // console.log(response.data.message.content)
+        const payload = getPayload({temperature, message})
+        const response = await chatApi(payload);
+        const {promptTokens, completionTokens, totalToken} = getToken({response}) 
+        await inputMessage({
+            sessionId: accessToken,
+            username,
+            role: "Assistant",
+            context: response.data.message.content
+        })
         return response.data.message.content
-
-
     } catch(err) {
         throw error;
     }
 }
 
-service.runToolLoop = async ( messages, tools = [], temperature, iteration, terminalCode) => {
+service.runToolLoop = async ({messages, tools = [], temperature = 0.5, iteration, username, accessToken, rag = null}) => {
     if (iteration >= 3) {
         return "Maaf, saya tidak dapat menemukan jawaban yang cukup setelah beberapa percobaan.";
     }
     try {
-        const payload = {
-            model: OLLAMA_MODEL,
-            messages: messages,
-            stream: false,
-            options: { temperature },
-            tools: tools
-        };
-
+        const payload = getPayload({temperature, message: messages})
         console.log(`[Iterasi ${iteration}] Memanggil Ollama...`);
-        console.log(messages)
-        const response = await axios.post(OLLAMA_URL + '/api/chat', payload, {
-            responseType: 'json',
-            timeout: 0
-        });
-
+        const response = await chatApi(payload)
+        const {promptTokens, completionTokens, totalToken} = getToken({response}) 
         const message = response.data.message;
+        
         const tool_calls = message.tool_calls || [];
+        const toolUse = tool_calls.map(item => item.function.name)
+        const toolResults = [];
 
         if (tool_calls.length <= 0) {
-            console.log("Keluar")
+            console.log("Keluar");
+            console.log(totalToken);
+            await inputMessage({
+                sessionId: accessToken,
+                username,
+                role: "Assistant",
+                context: message,
+                rag,
+                prompt_eval_count: promptTokens,
+                eval_count: completionTokens,
+                totalToken
+            })
             return message.content;
         }
 
-        
         messages.push({
             role: "assistant",
             content: message.content || "",
@@ -163,28 +112,10 @@ service.runToolLoop = async ( messages, tools = [], temperature, iteration, term
             }
             console.log(`-----------------------------------------------`);
             console.log(`[Iterasi ${iteration}] Memanggil tool: ${toolCall.function.name}`, toolCall.function.arguments);
-            // const args = toool.function.parameters.properties;
-            // const parameter = toolCall.function.arguments;
-
-            // if (("terminal_name" in parameter) && terminalCode) {
-            //     const terminalCodeParam = await getTerminalCode(parameter.terminal_name)
-            //     console.log(`CODE: ${terminalCodeParam}`)
-
-            // }
-            // console.log(toolCall.function)
-            // if ("")
-
-            // if ("terminal_code" in args && terminalCode) {
-            //     toolCall.function.arguments.terminal_code = terminalCode;
-            //     toolCall.function.arguments.terminal_name = '';
-            //     console.log(toolCall.function.arguments);
-            // }
-            
             console.log(`-----------------------------------------------`);
 
             const result = await toool.handler(toolCall.function.arguments);
-            
-            
+            toolResults.push(result)
             messages.push({
                 role: "tool",
                 tool_name: toolCall.function.name,
@@ -195,6 +126,18 @@ service.runToolLoop = async ( messages, tools = [], temperature, iteration, term
                 content: "Ingat: jawab HANYA dalam Bahasa Indonesia, jangan tampilkan format JSON/tabel mentah, jangan melakukan kalkulasi tambahan sendiri — cukup laporkan data yang relevan secara ringkas."
             });
         }
+        await inputMessage({
+            sessionId: accessToken,
+            username,
+            role: "Assistant",
+            context: message,
+            tools: toolUse,
+            tool_result: toolResults,
+            rag,
+            prompt_eval_count: promptTokens,
+            eval_count: completionTokens,
+            totalToken
+        })
         return await service.runToolLoop(messages, tools, temperature, iteration + 1);
 
     } catch (error) {

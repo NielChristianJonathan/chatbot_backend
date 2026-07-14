@@ -18,7 +18,11 @@ const keyContext = {
         "ada berapa container saat ini?",
         "container dengan id ini sedang berada dimana",
         "customer dengan kode ini ada dimana",
-        "pranote, nota, invoice"
+        "pranote, nota, invoice",
+        "Kapal, voyage, ETA, ETD",
+        "dimana request ID",
+        "Terminal informasi"
+        
     ]
 }
 

@@ -8,7 +8,7 @@ const loginService = async (username, password) => {
         const user = await getDataUser(username);
         if(!user) throw new AppError('User tidak ditemukan!', 400);
 
-        const terminal_code = user.terminal_code || "";
+        const terminal_code = user.tml_cd || "_";
         const passDb = user.password;
         const checkPass = await bcrypt.compare(password, passDb);
         if (!checkPass) {

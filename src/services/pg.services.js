@@ -95,4 +95,29 @@ const getTerminalCode = async (username) => {
     }
 }
 
-module.exports = { search_nearest_vector, input_data, getDataUser, getUsername, inputUser, getTerminalCode }
+const inputMessage = async({sessionId, username, role, context, tools = null, tool_result = null, rag = null, prompt_eval_count = null, eval_count = null, totalToken = null}) => {
+    try {
+        console.log(`SessionId:`, sessionId)
+        console.log(`username:`, username)
+        console.log(`role:`, role)
+        console.log(`context:`, context)
+        console.log(`tools:`, tools)
+        console.log(`tool_result:`, tool_result)
+        console.log(`rag:`, rag)
+        console.log(`prompt_eval_count:`, prompt_eval_count)
+        console.log(`eval_count:`, eval_count)
+        console.log(`totalToken:`, totalToken)
+        await poolPg.query(`
+            INSERT INTO messages (session_id, username, role, context, tools, tool_result, rag, prompt_eval_count, eval_count, total_token)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+            `, [sessionId, username, role, context, tools, tool_result, rag, prompt_eval_count, eval_count, totalToken]
+        );
+        return 
+    } catch(err) {
+        console.log(err);
+        
+        throw new AppError("Failed Database", 500)
+    }
+}
+
+module.exports = { search_nearest_vector, input_data, getDataUser, getUsername, inputUser, getTerminalCode, inputMessage }

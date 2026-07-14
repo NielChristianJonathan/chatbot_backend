@@ -4,8 +4,7 @@ const { AppError } = require("../../utils/appError.js");
 const properties_get_container_detail = 
     {
         request_id: {type: "string", description: "merupakan id request 15 karakter dengan 3 huruf disambung dengan 12 angka acak, contoh: DEL267000133062"},
-        terminal_code: {type: "string", description: "merupakan kode terminal, ambil ketika user bilang terminal code atau kode terminal, contoh: T009, TP1Z3"},
-        terminal_name: {type: "string", description: "merupakan nama terminal, contoh: Tanjung Priok 1"},
+        terminal_code: {type: "string", description: "merupakan kode terminal pelabuhan"},
         container_number: {type: "string", description: "merupakan nomor kontainer 11 karakter dengan 4 huruf disambung dengan 7 angka acak, contoh: TAKU6091615"},
         point: {type: "string", description: "merupakan point, contoh: 20260708C711077"},
         vessel_name: {type: "string", description: "merupakan nama kapal, contoh: TANTO SAUDARA"},
@@ -21,14 +20,13 @@ const properties_get_container_detail =
 
 
 
-const get_container_detail_Oracle = async (request_id, terminal_code, terminal_name, container_number, point, vessel_name, voyage, e_i, container_size, container_type, container_status, iso_code, limit) => {
+const get_container_detail_Oracle = async (request_id, terminal_code, container_number, point, vessel_name, voyage, e_i, container_size, container_type, container_status, iso_code, limit) => {
     try {
         console.log(`===========================================================`)
         console.log(`Container Tools`)
         console.log(`===========================================================`)
         console.log(`request_id: ${request_id}`)
         console.log(`terminal_code: ${terminal_code}`)
-        console.log(`terminal_name: ${terminal_name}`)
         console.log(`container_number: ${container_number}`)
         console.log(`point: ${point}`)
         console.log(`vessel_name: ${vessel_name}`)
@@ -104,7 +102,6 @@ const get_container_detail_Oracle = async (request_id, terminal_code, terminal_n
             WHERE 1 = 1
                 AND (:REQUEST_ID IS NULL OR UPPER(CA.BILLING_REQUEST_ID) LIKE '%' || UPPER(:REQUEST_ID) || '%')
                 AND (:TERMINAL_CODE IS NULL OR UPPER(CA.TML_CD) LIKE '%' || UPPER(:TERMINAL_CODE) || '%')
-                AND (:TERMINAL_NAME IS NULL OR UPPER(MT.TERMINAL_NAME) LIKE '%' || UPPER(:TERMINAL_NAME) || '%')
                 AND (:CONTAINER_NUMBER IS NULL OR UPPER(CA.NO_CONTAINER) LIKE '%' || UPPER(:CONTAINER_NUMBER) || '%')
                 AND (:POINT IS NULL OR UPPER(CA.POINT) LIKE '%' || UPPER(:POINT) || '%')
                 AND (:VESSEL_NAME IS NULL OR UPPER(CA.VESSEL) LIKE '%' || UPPER(:VESSEL_NAME) || '%')
@@ -120,7 +117,6 @@ const get_container_detail_Oracle = async (request_id, terminal_code, terminal_n
                 replacements: {
                     REQUEST_ID: normalize_string(request_id), // DEL260000008242
                     TERMINAL_CODE: normalize_string(terminal_code), // TP1Z3
-                    TERMINAL_NAME: normalize_string(terminal_name), // Tanjung Priok 1 Zona 3
                     CONTAINER_NUMBER: normalize_string(container_number), //TAKU6091615
                     POINT: normalize_string(point), // 20260708C711077
                     VESSEL_NAME: normalize_string(vessel_name), //TANTO SAUDARA

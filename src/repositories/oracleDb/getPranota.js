@@ -2,8 +2,7 @@ const { sequelize } = require("../../config/oracle.js");
 const { AppError } = require("../../utils/appError.js");
 
 const properties_get_pranota = {
-    terminal_code: {type: "string", description: "merupakan kode terminal, ambil ketika user bilang terminal code atau kode terminal, contoh: T009, TP1Z3"},
-    // terminal_name: {type: "string", description: "merupakan nama terminal, contoh: Tanjung Priok 1"},
+    terminal_code: {type: "string", description: "merupakan kode terminal pelabuhan"},
     request_id: {type: "string", description: "merupakan id request 15 karakter dengan 3 huruf disambung dengan 12 angka acak, contoh: DEL267000133062"},
     service_code: { type: "string", description: "Kode layanan (Service Code). Contoh: REC, DEL"},
     service_name: { type: "string", description: "Nama layanan (Service Name). Contoh: RECEIVING, DELIVERY"},
@@ -35,38 +34,6 @@ const get_pranota_Oracle = async (terminal_code, terminal_name, request_id, serv
         const [result] = await sequelize.query(`
             SELECT 
             RH.*
-            , CURSOR (
-                    SELECT 
-                        PD.BILLER_REQ_ID AS REQUEST_ID
-                        , PD.LINE_NUMBER
-                        , PD.DESCRIPTION
-                        , PD.COMPONENT_CODE
-                        , PD.COMPONENT_NAME
-                        , TO_CHAR(PD.START_DATE, 'YYYY-MM-DD HH24:MI:SS') AS START_DATE
-                        , TO_CHAR(PD.END_DATE, 'YYYY-MM-DD HH24:MI:SS') AS END_DATE
-                        , PD.STR_START_DATE
-                        , PD.STR_END_DATE
-                        , PD.TARIF
-                        , PD.AMOUNT
-                        , PD.BASIC_TARIF
-                        , PD.QUANTITY
-                        , PD.CONTAINER_SIZE
-                        , PD.CONTAINER_TYPE
-                        , PD.CONTAINER_STATUS
-                        , PD.CONTAINER_HEIGHT
-                        , PD.HZ
-                        , PD.EI
-                        , PD.EQUIPMENT
-                        , PD.VIA
-                        , PD.ITEM_CODE
-                        , PD.OOG
-                        , PD.OD
-                        , PD.DG
-                        , PD.MD
-                        , PD.SLING
-                        , PD.CONTAINER_LIST
-                    FROM STG_PRANOTA_DETAIL PD WHERE PD.BILLER_REQ_ID = RH.REQUEST_ID
-                ) AS DETAIL_PRANOTA
             FROM (
                 SELECT 
                     PH.TERMINAL_CODE 
