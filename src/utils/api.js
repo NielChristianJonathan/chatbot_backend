@@ -10,6 +10,7 @@ const chatApi = async (payload) => {
             timeout: 0
         }
     )
+    console.log(response)
     return response
 }
 

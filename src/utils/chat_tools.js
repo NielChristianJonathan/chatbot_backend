@@ -1,26 +1,27 @@
+const { SYSTEM, USER, ASSISTANT } = require("../constant/const");
 const { OLLAMA_MODEL } = require("../constant/env");
+const { minusToken, inputMessage } = require("../services/pg.services");
 
 const getMessage = ({base_prompt, history, prompt}) => {
     const message = [
         {
-            role:"sistem",
-            content: `${base_prompt}`
+            role:SYSTEM,
+            content: base_prompt
         },
         ...history,
-        { role: "user", content: prompt}
+        { role: USER, content: prompt}
     ]
     return message
 }
 
-const getPayload = ({message, temperature}) => {
-    console.log(message)
+const getPayload = ({message, temperature, tools=[]}) => {
     const payload = {
         model: OLLAMA_MODEL,
         messages: message,
         stream: false,
-        options: { temperature, num_ctx: 8192 }
+        options: { temperature, num_ctx: 8192 },
+        tools: tools
     };
-    // console.log(message)
     return payload
 }
 
@@ -40,4 +41,15 @@ ${prompt}`;
     return pesan
 }
 
-module.exports = {getMessage, getPayload, getToken, getRagMessage}
+const updateDatabase = async({totalToken=null, username, accessToken, tools=null, tool_result=null, rag=null, prompt_eval_count=null, eval_count=null, response}) => {
+    await minusToken({totalToken, username})
+    await inputMessage({
+        sessionId: accessToken,
+        username,
+        role: ASSISTANT,
+        context: response.data.message.content
+    })
+    // console.log("Berhasil")
+}
+
+module.exports = {getMessage, getPayload, getToken, getRagMessage, updateDatabase}

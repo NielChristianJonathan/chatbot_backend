@@ -18,9 +18,6 @@ const chat = async (req, res, next) => {
         const userMessage = req.body.message?.trim();
         const accessToken = req.cookies.accessToken;
         const terminalAccess = req.user.terminalAccess;
-        console.log("===========================================================")
-        console.log(terminalAccess)
-        console.log("===========================================================")
         const result = await chatService.chatService({userMessage, accessToken, terminalCode, terminalAccess, username});
         return res.json(result);
     } catch (err) { 

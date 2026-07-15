@@ -1,10 +1,11 @@
 
 const { OLLAMA_EMBED_MODEL, OLLAMA_URL, OLLAMA_MODEL } = require("../constant/env");
 const axios = require("axios");
-const { search_nearest_vector, inputMessage } = require("./pg.services");
+const { search_nearest_vector, inputMessage, minusToken } = require("./pg.services");
 const { getTerminalCode } = require("../repositories/terminal");
 const { chatApi } = require("../utils/api");
-const { getMessage, getPayload, getToken, getRagMessage } = require("../utils/chat_tools");
+const { getMessage, getPayload, getToken, getRagMessage, updateDatabase } = require("../utils/chat_tools");
+const { ASSISTANT, TOOL, SYSTEM } = require("../constant/const");
 
 const service = {};
 
@@ -25,17 +26,20 @@ service.ollamaChatRAG = async ({base_prompt, prompt, temperature = 0.5, context,
     const message = getMessage({base_prompt, history, pesan})
     try {
         const payload = getPayload({message, temperature});
+
         const response = await chatApi(payload)
         const {promptTokens, completionTokens, totalToken} = getToken({response}) 
-        await inputMessage({
-            sessionId: accessToken,
+        
+        await updateDatabase({
+            accessToken,
             username,
-            role: "Assistant",
+            role: ASSISTANT,
             context: response.data.message.content,
             rag: context,
             prompt_eval_count: promptTokens, 
             eval_count: completionTokens, 
-            totalToken
+            totalToken,
+            response
         })
         return response.data.message.content
     } catch(err) {
@@ -49,18 +53,13 @@ service.ollamaChatTool = async ({base_prompt, prompt, temperature = 0.1, tools =
     return await service.runToolLoop({messages, tools, temperature, iteration: 0, username, accessToken});
 };
 
-service.ollamaChat = async ({base_prompt, prompt, temperature = 0.5, history = []}, accessToken, username) => {
+service.ollamaChat = async ({base_prompt, prompt, temperature = 0.5, history = [], accessToken, username}) => {
     const message = getMessage({base_prompt, history, prompt})
     try {
         const payload = getPayload({temperature, message})
         const response = await chatApi(payload);
         const {promptTokens, completionTokens, totalToken} = getToken({response}) 
-        await inputMessage({
-            sessionId: accessToken,
-            username,
-            role: "Assistant",
-            context: response.data.message.content
-        })
+        await updateDatabase({totalToken, username, accessToken, response})
         return response.data.message.content
     } catch(err) {
         throw error;
@@ -72,8 +71,10 @@ service.runToolLoop = async ({messages, tools = [], temperature = 0.5, iteration
         return "Maaf, saya tidak dapat menemukan jawaban yang cukup setelah beberapa percobaan.";
     }
     try {
-        const payload = getPayload({temperature, message: messages})
+        console.log(tools.map(item => item.function.name))
+        const payload = getPayload({temperature, message: messages, tools})
         console.log(`[Iterasi ${iteration}] Memanggil Ollama...`);
+
         const response = await chatApi(payload)
         const {promptTokens, completionTokens, totalToken} = getToken({response}) 
         const message = response.data.message;
@@ -84,22 +85,22 @@ service.runToolLoop = async ({messages, tools = [], temperature = 0.5, iteration
 
         if (tool_calls.length <= 0) {
             console.log("Keluar");
-            console.log(totalToken);
-            await inputMessage({
-                sessionId: accessToken,
+            await updateDatabase({
+                accessToken,
                 username,
-                role: "Assistant",
+                role: ASSISTANT,
                 context: message,
                 rag,
                 prompt_eval_count: promptTokens,
                 eval_count: completionTokens,
-                totalToken
+                totalToken,
+                response
             })
             return message.content;
         }
 
         messages.push({
-            role: "assistant",
+            role: ASSISTANT,
             content: message.content || "",
             tool_calls: tool_calls
         });
@@ -117,28 +118,29 @@ service.runToolLoop = async ({messages, tools = [], temperature = 0.5, iteration
             const result = await toool.handler(toolCall.function.arguments);
             toolResults.push(result)
             messages.push({
-                role: "tool",
+                role: TOOL,
                 tool_name: toolCall.function.name,
                 content: JSON.stringify(result)
             });
             messages.push({
-                role: "system",
+                role: SYSTEM,
                 content: "Ingat: jawab HANYA dalam Bahasa Indonesia, jangan tampilkan format JSON/tabel mentah, jangan melakukan kalkulasi tambahan sendiri — cukup laporkan data yang relevan secara ringkas."
             });
         }
-        await inputMessage({
-            sessionId: accessToken,
+        await updateDatabase({
+            accessToken,
             username,
-            role: "Assistant",
+            role: ASSISTANT,
             context: message,
             tools: toolUse,
             tool_result: toolResults,
             rag,
             prompt_eval_count: promptTokens,
             eval_count: completionTokens,
-            totalToken
+            totalToken,
+            response
         })
-        return await service.runToolLoop(messages, tools, temperature, iteration + 1);
+        return await service.runToolLoop({messages, tools, temperature, iteration: iteration + 1, username, accessToken});
 
     } catch (error) {
         console.error(`Error di iterasi ${iteration}:`, error.message);

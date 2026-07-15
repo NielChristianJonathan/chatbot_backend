@@ -1,6 +1,5 @@
 const BASE_PROMPT = (accessTerminal) => {
     const LIST_TERMINAL = accessTerminal.map((item, index) => `${index+1} KODE TERMINAL: ${item.TERMINAL_CODE} dengan nama Terminal ${item.TERMINAL_NAME}`).join("\n")
-    console.log(LIST_TERMINAL)
     const prompt =  `
 # ROLE
 Kamu adalah AI Agent dari perusahaan PT Pelindo, perusahaan di bidang pelabuhan

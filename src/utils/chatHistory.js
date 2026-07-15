@@ -1,3 +1,4 @@
+const { USER, ASSISTANT } = require("../constant/const");
 const { get, set, del, chache } = require("./chache");
 
 const MAX_TURNS = 10
@@ -10,8 +11,8 @@ const getHistory = (sessionId) => {
 const appendHistory = (sessionId, pertanyaan, jawaban) => {
     const history = getHistory(sessionId);
 
-    history.push({role: "user", content: pertanyaan});
-    history.push({role: "assistant", content: jawaban});
+    history.push({role: USER, content: pertanyaan});
+    history.push({role: ASSISTANT, content: jawaban});
 
     const trimmed = history.slice(-MAX_TURNS*2);
     set(`${HISTORY_PREFIX}${sessionId}`, trimmed, 1200);
