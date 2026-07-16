@@ -19,7 +19,7 @@ const loginController = async (req, res, next) => {
         })
         console.log("berhasil")
         
-        res.json("HALOOOOO")
+        res.ok({accessToken, refreshToken, username})
     } catch(err) {
         next(err)
     }

@@ -21,7 +21,7 @@ const loginService = async (username, password) => {
             accessToken
         })
     } catch(err) {
-        console.log(err)
+        throw err
     }
 }
 

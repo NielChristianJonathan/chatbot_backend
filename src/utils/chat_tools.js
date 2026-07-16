@@ -41,15 +41,15 @@ ${prompt}`;
     return pesan
 }
 
-const updateDatabase = async({totalToken=null, username, accessToken, tools=null, tool_result=null, rag=null, prompt_eval_count=null, eval_count=null, response}) => {
+const updateDatabase = async({totalToken=null, username, chatSession, tools=null, tool_result=null, rag=null, prompt_eval_count=null, eval_count=null, response}) => {
     await minusToken({totalToken, username})
     await inputMessage({
-        sessionId: accessToken,
+        sessionId: chatSession,
         username,
         role: ASSISTANT,
         context: response.data.message.content
     })
-    // console.log("Berhasil")
+    console.log("Berhasil")
 }
 
 module.exports = {getMessage, getPayload, getToken, getRagMessage, updateDatabase}

@@ -9,18 +9,17 @@ const { ASSISTANT, TOOL, SYSTEM } = require("../constant/const");
 
 const service = {};
 
-service.ollamaChatBoth = async ({base_prompt, prompt, temperature = 0.5, context, tools, history = [], username, accessToken}) => {
+service.ollamaChatBoth = async ({base_prompt, prompt, temperature = 0.5, context, tools, history = [], username, chatSession}) => {
     const pesan = getRagMessage({context, prompt})
     const messages = getMessage({base_prompt, history, pesan})
     try {
-        return await service.runToolLoop( {messages, tools, temperature, iteration: 0, username, accessToken, rag: context});
+        return await service.runToolLoop( {messages, tools, temperature, iteration: 0, username, chatSession, rag: context});
     } catch(err) {
-        console.log(err)
         throw err
     }
 }
 
-service.ollamaChatRAG = async ({base_prompt, prompt, temperature = 0.5, context, history = [], accessToken, username}) => {
+service.ollamaChatRAG = async ({base_prompt, prompt, temperature = 0.5, context, history = [], chatSession, username}) => {
     
     const pesan = getRagMessage({context, prompt})
     const message = getMessage({base_prompt, history, pesan})
@@ -31,7 +30,7 @@ service.ollamaChatRAG = async ({base_prompt, prompt, temperature = 0.5, context,
         const {promptTokens, completionTokens, totalToken} = getToken({response}) 
         
         await updateDatabase({
-            accessToken,
+            chatSession,
             username,
             role: ASSISTANT,
             context: response.data.message.content,
@@ -48,25 +47,25 @@ service.ollamaChatRAG = async ({base_prompt, prompt, temperature = 0.5, context,
 }
 
 
-service.ollamaChatTool = async ({base_prompt, prompt, temperature = 0.1, tools = [], history = [], username, accessToken}) => {
+service.ollamaChatTool = async ({base_prompt, prompt, temperature = 0.1, tools = [], history = [], username, chatSession}) => {
     const messages = getMessage({base_prompt, history, prompt})
-    return await service.runToolLoop({messages, tools, temperature, iteration: 0, username, accessToken});
+    return await service.runToolLoop({messages, tools, temperature, iteration: 0, username, chatSession});
 };
 
-service.ollamaChat = async ({base_prompt, prompt, temperature = 0.5, history = [], accessToken, username}) => {
+service.ollamaChat = async ({base_prompt, prompt, temperature = 0.5, history = [], chatSession, username}) => {
     const message = getMessage({base_prompt, history, prompt})
     try {
         const payload = getPayload({temperature, message})
         const response = await chatApi(payload);
         const {promptTokens, completionTokens, totalToken} = getToken({response}) 
-        await updateDatabase({totalToken, username, accessToken, response})
+        await updateDatabase({totalToken, username, chatSession, response})
         return response.data.message.content
     } catch(err) {
         throw error;
     }
 }
 
-service.runToolLoop = async ({messages, tools = [], temperature = 0.5, iteration, username, accessToken, rag = null}) => {
+service.runToolLoop = async ({messages, tools = [], temperature = 0.5, iteration, username, chatSession, rag = null}) => {
     if (iteration >= 3) {
         return "Maaf, saya tidak dapat menemukan jawaban yang cukup setelah beberapa percobaan.";
     }
@@ -82,11 +81,12 @@ service.runToolLoop = async ({messages, tools = [], temperature = 0.5, iteration
         const tool_calls = message.tool_calls || [];
         const toolUse = tool_calls.map(item => item.function.name)
         const toolResults = [];
+        console.log("WOIIII")
 
         if (tool_calls.length <= 0) {
             console.log("Keluar");
             await updateDatabase({
-                accessToken,
+                chatSession,
                 username,
                 role: ASSISTANT,
                 context: message,
@@ -128,7 +128,7 @@ service.runToolLoop = async ({messages, tools = [], temperature = 0.5, iteration
             });
         }
         await updateDatabase({
-            accessToken,
+            chatSession,
             username,
             role: ASSISTANT,
             context: message,
@@ -140,7 +140,7 @@ service.runToolLoop = async ({messages, tools = [], temperature = 0.5, iteration
             totalToken,
             response
         })
-        return await service.runToolLoop({messages, tools, temperature, iteration: iteration + 1, username, accessToken});
+        return await service.runToolLoop({messages, tools, temperature, iteration: iteration + 1, username, chatSession});
 
     } catch (error) {
         console.error(`Error di iterasi ${iteration}:`, error.message);
@@ -175,8 +175,8 @@ service.ollamaEmbed = async (message) => {
         // console.log(result)
         return result;
     } catch (err) {
-        console.log(err)
         console.log(`error embed: gagal`);  
+        throw err
     }
 }
 

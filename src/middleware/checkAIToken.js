@@ -5,9 +5,8 @@ const { tokenized, concate } = require("../utils/tokenizer");
 const { BASE_PROMPT } = require("../utils/tools/generic");
 
 
-const checkToken = async(req, res, next) => {
+const checkAIToken = async(req, res, next) => {
     try {
-        console.log("haloo")
         const {username, terminalAccess} = req.user;
         const {accessToken} = req.cookies;
         const remaining_token = getRemainingToken({username});
@@ -16,7 +15,6 @@ const checkToken = async(req, res, next) => {
         const userMessage = req.body.message
         const message = concate({userMessage, history, base_prompt});
         const estimatedTokenUse = await tokenized({message})
-        console.log(estimatedTokenUse)
 
         if (remaining_token < estimatedTokenUse) {
             console.log("gagal")
@@ -25,9 +23,9 @@ const checkToken = async(req, res, next) => {
 
         next()
     } catch(err) {
-        console.log(err)
+
         throw err
     }
 }
 
-module.exports = {checkToken}
+module.exports = {checkAIToken}

@@ -16,12 +16,12 @@ const chat = async (req, res, next) => {
         const username = req.user.username;
         const terminalCode = req.user.terminalCode;
         const userMessage = req.body.message?.trim();
-        const accessToken = req.cookies.accessToken;
         const terminalAccess = req.user.terminalAccess;
-        const result = await chatService.chatService({userMessage, accessToken, terminalCode, terminalAccess, username});
-        return res.json(result);
+        const chatSession = req.headers["chatsession"]
+        console.log(chatSession);
+        const result = await chatService.chatService({userMessage, terminalCode, terminalAccess, username, chatSession});
+        return res.set("chatsession", chatSession).ok(result);
     } catch (err) { 
-        console.log(err)
         next(err);
     }
 }

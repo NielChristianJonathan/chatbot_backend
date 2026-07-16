@@ -12,7 +12,7 @@ const service = {}
 const temperature = 0.7
 
 const chatService = async (args) => {
-    const {userMessage, accessToken, terminalCode, terminalAccess, username} =args;
+    const {userMessage, accessToken, terminalCode, terminalAccess, username, chatSession} =args;
     const debug = '';
     await updateDate({username});
     try {
@@ -21,11 +21,12 @@ const chatService = async (args) => {
             role: USER,
             content: userMessage
         };
-        const history = await getHistory({accessToken})
+        const history = await getHistory({chatSession})
         let ans = null
         
         // ==============================================================================================================
         const embContext = await getOrInitKeyEmbed();
+        
         const embedMessage = await ollamaEmbed(userMessage);
         const role = getRole(embedMessage, embContext);
         console.log(role)
@@ -33,22 +34,21 @@ const chatService = async (args) => {
         if (role === "TOOLS") {
             const embedTool = await getOrInitToolEmbed();
             const tools = getTool(embedMessage, embedTool);
-            ans = await ollamaChatTool({base_prompt, prompt: userMessage, temperature, tools, history, username, accessToken});
+            ans = await ollamaChatTool({base_prompt, prompt: userMessage, temperature, tools, history, username, chatSession});
         } else if ( role === "RAG" ){
             console.log(`Masuk RAG`)
             const injectPrompt = await search_nearest_vector(embedMessage);
-            ans = await ollamaChatRAG({base_prompt, prompt: userMessage, temperature, context: injectPrompt, history, accessToken, username});
+            ans = await ollamaChatRAG({base_prompt, prompt: userMessage, temperature, context: injectPrompt, history, chatSession, username});
         } else if ( role === "BOTH") {
             console.log("BOOOTTHHHHHH")
             const embedTool = await getOrInitToolEmbed();
             const tools = getTool(embedMessage, embedTool)
             const injectPrompt = await search_nearest_vector(embedMessage);
-            ans = await ollamaChatTool({base_prompt, prompt: userMessage, temperature, tools, history, terminalCode, username, accessToken});
+            ans = await ollamaChatTool({base_prompt, prompt: userMessage, temperature, tools, history, terminalCode, username, chatSession});
             // ans = await ollamaChatBoth({base_prompt, prompt: userMessage, 0.1, injectPrompt, tools, history, username, AccessTokenn})
         } else {
             base_prompt = `${base_prompt}`
-            console.log(accessToken)
-            ans = await ollamaChat({base_prompt, prompt: userMessage, temperature, history, accessToken, username})
+            ans = await ollamaChat({base_prompt, prompt: userMessage, temperature, history, chatSession, username})
         }
         const answer = {
             role: ASSISTANT,
@@ -57,10 +57,12 @@ const chatService = async (args) => {
         // appendHistory(accessToken, userMessage, ans);
         // ==============================================================================================================
         await pushMessage({accessToken, message, answer})
+        
 
-        return {data: ans}
+
+        return [{jawaban: ans}]
     } catch (err) {
-        console.log(err)
+        throw err
     }
     
 }

@@ -29,7 +29,6 @@ const keyContext = {
 const getValEmbed = async (values) => {
     vals = [];
     for (val of values) {
-        // console.log(val)
         embVal = await ollamaEmbed(val);
         vals.push(embVal);
         // console.log("BErha")
