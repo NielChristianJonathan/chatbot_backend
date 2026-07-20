@@ -1,4 +1,5 @@
 const redis = require("../config/redis.js");
+const { AppError } = require("./appError.js");
 const getHistory = async({chatSession}) => {
     const cache = redis.getRedis()
     let history = await cache.lRange(`chat:${chatSession}`,0,-1);
@@ -6,11 +7,17 @@ const getHistory = async({chatSession}) => {
     return history
 }
 
-const pushMessage = async({chatSession, message, answer}) => {
-    const cache = redis.getRedis()
-    await cache.rPush(`chat:${chatSession}`, JSON.stringify(message));
-    await cache.rPush(`chat:${chatSession}`, JSON.stringify(answer));
-    await cache.lTrim(`chat:${chatSession}`, -5, -1)
+const pushMessage = async ({chatSession, message, answer}) => {
+    console.log("HALO")
+    try {
+        const cache = redis.getRedis()
+        await cache.rPush(`chat:${chatSession}`, JSON.stringify(message));
+        await cache.rPush(`chat:${chatSession}`, JSON.stringify(answer));
+        await cache.lTrim(`chat:${chatSession}`, -5, -1)
+    } catch(err) {
+        console.log(err)
+        throw new AppError("Failed Redis", 500)
+    }
 }
 
 module.exports = { getHistory, pushMessage }

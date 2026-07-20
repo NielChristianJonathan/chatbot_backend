@@ -20,6 +20,7 @@ const chat = async (req, res, next) => {
         const chatSession = req.headers["chatsession"]
         console.log(chatSession);
         const result = await chatService.chatService({userMessage, terminalCode, terminalAccess, username, chatSession});
+        console.log(result);
         return res.set("chatsession", chatSession).ok(result);
     } catch (err) { 
         next(err);

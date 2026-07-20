@@ -11,6 +11,7 @@ const checkAIToken = async(req, res, next) => {
         const {accessToken} = req.cookies;
         const remaining_token = getRemainingToken({username});
         const history = await getHistory({accessToken});
+        console.log(terminalAccess)
         const base_prompt = BASE_PROMPT(terminalAccess);
         const userMessage = req.body.message
         const message = concate({userMessage, history, base_prompt});

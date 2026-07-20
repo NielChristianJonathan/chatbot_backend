@@ -19,8 +19,9 @@ const loginController = async (req, res, next) => {
         })
         console.log("berhasil")
         
-        res.ok({accessToken, refreshToken, username})
+        res.ok(result)
     } catch(err) {
+        console.log(err)
         next(err)
     }
 }

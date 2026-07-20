@@ -1,5 +1,5 @@
 const bcrypt = require("bcrypt")
-const { getDataUser, getUsername, inputUser, getTerminalCode } = require("./pg.services");
+const { getDataUser, getUsername, inputUser, getTerminalCode, getPlan } = require("./pg.services");
 const { AppError } = require("../utils/appError");
 const { generateAccessToken, generateRefreshToken } = require("../utils/jwt");
 
@@ -7,19 +7,22 @@ const loginService = async (username, password) => {
     try {
         const user = await getDataUser(username);
         if(!user) throw new AppError('User tidak ditemukan!', 400);
-
+        console.log(user)
         const terminal_code = user.tml_cd || "_";
         const passDb = user.password;
         const checkPass = await bcrypt.compare(password, passDb);
         if (!checkPass) {
             throw new AppError("Password Salah", 400)
         }
-        const accessToken = generateAccessToken({username, terminalCode: terminal_code});
-        const refreshToken = generateRefreshToken({username, terminalCode: terminal_code});
-        return ({
-            refreshToken,
-            accessToken
-        })
+        delete user.password;
+        user.accessToken = generateAccessToken({username, terminalCode: terminal_code});
+        user.refreshToken = generateRefreshToken({username, terminalCode: terminal_code});
+        const plan = await getPlan()
+        console.log('==============================')
+        console.log(plan)
+        console.log('==============================')
+        
+        return (user)
     } catch(err) {
         throw err
     }

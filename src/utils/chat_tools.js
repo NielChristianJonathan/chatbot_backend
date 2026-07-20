@@ -41,8 +41,15 @@ ${prompt}`;
     return pesan
 }
 
-const updateDatabase = async({totalToken=null, username, chatSession, tools=null, tool_result=null, rag=null, prompt_eval_count=null, eval_count=null, response}) => {
+const updateDatabase = async({totalToken=null, username, chatSession, tools=null, tool_result=null, rag=null, prompt_eval_count=null, eval_count=null, response, prompt=''}) => {
     await minusToken({totalToken, username})
+    
+    await inputMessage({
+        sessionId: chatSession,
+        username,
+        role: USER,
+        context: prompt
+    })
     await inputMessage({
         sessionId: chatSession,
         username,

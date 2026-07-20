@@ -46,8 +46,18 @@ const input_data = async (content, embedding) => {
 const getDataUser = async (username) => {
     try {
         const result = await poolPg.query(`
-            SELECT * FROM users WHERE username = $1
-            LIMIT 1
+            select 
+                u.username,
+                u.password,
+                u.tml_cd,
+                u.tml_nm,
+                u.reset_date,
+                u.remaining_tokens,
+                u.plan_date,
+                t.plan
+            from users u
+            join token t on u.plan_id = t.id
+            where u.username = $1
             `, [username]
         );
         return result.rows[0]
@@ -110,7 +120,7 @@ const inputMessage = async({sessionId, username, role, context, tools = null, to
         console.log(`eval_count:`, eval_count)
         console.log(`totalToken:`, totalToken)
         await poolPg.query(`
-            INSERT INTO messages (session_id, username, role, context, tools, tool_result, rag, prompt_eval_count, eval_count, total_token)
+            INSERT INTO messages (chatsession, username, role, context, tools, tool_result, rag, prompt_eval_count, eval_count, total_token)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
             `, [sessionId, username, role, context, tools, tool_result, rag, prompt_eval_count, eval_count, totalToken]
         );
@@ -183,15 +193,55 @@ const addKeyMessages = async ({username, chatSession, userMessage}) => {
         console.log(chatSession)
         console.log(userMessage)
         await poolPg.query(`
-            INSERT INTO keymessages (idSession, username, title, createDate)
+            INSERT INTO keymessages (chatSession, username, title, createDate)
             VALUES ($1, $2, $3, now())
             `, [chatSession, username, userMessage]
         )
-        console.log("Berhasil dimasukkan")
+        console.log("Key Berhasil dimasukkan")
     } catch (error) {
         console.log(error)
         throw new AppError("Failed Database", 500)
     }
 }
 
-module.exports = { search_nearest_vector, input_data, getDataUser, getUsername, inputUser, getTerminalCode, inputMessage, updateDate, getRemainingToken, minusToken, addKeyMessages }
+const getKeyMessage = async ({username}) => {
+    try {
+        result = await poolPg.query(`
+            select chatsession, title, createdate from keymessages
+            where username = $1;
+            `, [username]
+        )
+        return result.rows
+    } catch (error) {
+        throw new AppError("Failed Database", 500)
+    }
+}
+
+const getMessage = async ({username, chatSession}) => {
+    try {
+        const result = await poolPg.query(`
+            select 
+                chatsession, username, role, context as content
+            from messages 
+            where username = $1 
+            and chatsession = $2
+            `, [username, chatSession]
+        )
+        return result.rows
+    } catch (error) {
+        throw new AppError("Failed Database", 500)
+    }
+}
+
+const getPlan = async () => {
+    try {
+        const result = await poolPg.query(`
+            select * from token where status = 'Y'
+            `, 
+        )
+        return result
+    } catch (error) {
+        throw new AppError("Failed Database", 500)
+    }
+}
+module.exports = { search_nearest_vector, input_data, getDataUser, getUsername, inputUser, getTerminalCode, inputMessage, updateDate, getRemainingToken, minusToken, addKeyMessages, getKeyMessage, getMessage, getPlan }

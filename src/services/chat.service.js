@@ -12,7 +12,7 @@ const service = {}
 const temperature = 0.7
 
 const chatService = async (args) => {
-    const {userMessage, accessToken, terminalCode, terminalAccess, username, chatSession} =args;
+    const {userMessage, terminalCode, terminalAccess, username, chatSession} =args;
     const debug = '';
     await updateDate({username});
     try {
@@ -22,7 +22,8 @@ const chatService = async (args) => {
             content: userMessage
         };
         const history = await getHistory({chatSession})
-        let ans = null
+        
+        let ans = `null`
         
         // ==============================================================================================================
         const embContext = await getOrInitKeyEmbed();
@@ -54,13 +55,13 @@ const chatService = async (args) => {
             role: ASSISTANT,
             content: ans
         }
-        // appendHistory(accessToken, userMessage, ans);
         // ==============================================================================================================
-        await pushMessage({accessToken, message, answer})
+        await pushMessage({chatSession, message, answer})
+        
         
 
 
-        return [{jawaban: ans}]
+        return {username, role: ASSISTANT, content: ans}
     } catch (err) {
         throw err
     }

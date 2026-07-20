@@ -5,7 +5,7 @@ const { sequelize } = require("./src/config/oracle.js");
 const redis = require("./src/config/redis.js")
 
 const start = async() => {
-    // await repositories.initDatabase();
+    await repositories.initDatabase();
     try {
         await sequelize.authenticate();
         console.log('Connection has been established successfully.');
