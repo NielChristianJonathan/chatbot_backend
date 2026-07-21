@@ -54,7 +54,7 @@ const getDataUser = async (username) => {
                 u.reset_date,
                 u.remaining_tokens,
                 u.plan_date,
-                t.plan
+                t.plan as planUser
             from users u
             join token t on u.plan_id = t.id
             where u.username = $1
@@ -237,6 +237,7 @@ const getPlan = async () => {
     try {
         const result = await poolPg.query(`
             select * from token where status = 'Y'
+            order by price
             `, 
         )
         return result
@@ -244,4 +245,45 @@ const getPlan = async () => {
         throw new AppError("Failed Database", 500)
     }
 }
-module.exports = { search_nearest_vector, input_data, getDataUser, getUsername, inputUser, getTerminalCode, inputMessage, updateDate, getRemainingToken, minusToken, addKeyMessages, getKeyMessage, getMessage, getPlan }
+
+const upgradePlan = async ({username, newPlan}) => {
+    try {
+        await poolPg.query(`
+            update users 
+            set 
+                plan_id = t.id,
+                plan_date = now(),
+                remaining_tokens = t.max_token
+            from token t where users.username = $1 and t.plan = $2;
+            `, [username, newPlan]
+        )
+    } catch (error) {
+        throw new AppError("Failed Database", 500)
+    }
+}
+
+const deleteKeyMessage = async({username, chatSession}) => {
+    try {
+        await poolPg.query("begin");
+        await poolPg.query(`
+            delete from keymessages where chatsession = $1 and username = $2
+            `, [chatSession, username]
+        );
+        await poolPg.query(`
+            delete from messages where chatsession = $1 and username = $2
+            `, [chatSession, username]
+        )
+
+        const result = await getKeyMessage({username});
+        await poolPg.query(`
+            commit
+            `
+        )
+        return result
+    } catch (error) {
+        await poolPg.query(`rollback`)
+        throw new AppError("Failed Database", 500)
+    } 
+}
+
+module.exports = { search_nearest_vector, input_data, getDataUser, getUsername, inputUser, getTerminalCode, inputMessage, updateDate, getRemainingToken, minusToken, addKeyMessages, getKeyMessage, getMessage, getPlan, upgradePlan, deleteKeyMessage }

@@ -17,7 +17,7 @@ const checkAIToken = async(req, res, next) => {
         const message = concate({userMessage, history, base_prompt});
         const estimatedTokenUse = await tokenized({message})
 
-        if (remaining_token < estimatedTokenUse) {
+        if ((remaining_token - estimatedTokenUse) < 0) {
             console.log("gagal")
             throw new AppError(`Token Melebihi batas`, 429)
         }

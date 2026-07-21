@@ -12,7 +12,6 @@ const validationAccessToken = async (req, res, next) => {
         const terminalAccess = await getTerminalAccess(result.terminalCode)
         req.user = result;
         req.user.terminalAccess = terminalAccess
-        console.log(terminalAccess)
         next();
     } catch(err)  {
         console.log(err)

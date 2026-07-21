@@ -19,10 +19,11 @@ const loginService = async (username, password) => {
         user.refreshToken = generateRefreshToken({username, terminalCode: terminal_code});
         const plan = await getPlan()
         console.log('==============================')
-        console.log(plan)
+        console.log(plan.rows)
         console.log('==============================')
         
-        return (user)
+        
+        return ({user, plan: plan.rows})
     } catch(err) {
         throw err
     }

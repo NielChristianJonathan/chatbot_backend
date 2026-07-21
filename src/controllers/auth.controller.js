@@ -4,7 +4,9 @@ const loginController = async (req, res, next) => {
     try {
         const {username, password} = req.body;
         const result = await loginService(username, password);
-        const {accessToken, refreshToken} = result;
+        const {accessToken, refreshToken} = result.user;
+        delete result.user.accessToken;
+        delete result.user.refreshToken;
         res.cookie("accessToken", accessToken, {
             httpOnly: true,
             maxAge: 60 * 15 * 1000,
@@ -17,6 +19,7 @@ const loginController = async (req, res, next) => {
             sameSite: "lax",
             secure: false
         })
+        console.log(result)
         console.log("berhasil")
         
         res.ok(result)

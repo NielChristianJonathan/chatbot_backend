@@ -1,4 +1,4 @@
-const { getKeyMessage, getMessage } = require("./pg.services")
+const { getKeyMessage, getMessage, deleteKeyMessage } = require("./pg.services")
 
 const getKeyMessageService = async({username}) => {
     const keyMessage = await getKeyMessage({username});
@@ -12,4 +12,9 @@ const getMessageService = async ({username, chatSession}) => {
     return message
 }
 
-module.exports = {getKeyMessageService, getMessageService}
+const deleteKeyMessageService = async ({username, chatSession}) => {
+    const result = await deleteKeyMessage({username, chatSession});
+    return result
+}
+
+module.exports = {getKeyMessageService, getMessageService, deleteKeyMessageService}
