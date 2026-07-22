@@ -7,6 +7,7 @@ const authRoutes = require("./src/routes/auth.routes.js");
 const refreshRoutes = require("./src/routes/refresh.routes.js");
 const usersRoutes = require("./src/routes/users.routes.js");
 const planRoutes = require("./src/routes/plan.routes.js");
+const chatSessionRoutes = require("./src/routes/chatSession.routes.js");
 const { handleError } = require("./src/middleware/handleError.js");
 const cookieParser = require("cookie-parser");
 const { handlerResponse } = require("./src/middleware/handleResponse.js");
@@ -27,6 +28,7 @@ app.use("/update",updateRoutes);
 app.use("/refresh", refreshRoutes);
 app.use("/users",usersRoutes);
 app.use("/plan", planRoutes);
+app.use("/chat-session", chatSessionRoutes)
 
 app.use(handleError);
 

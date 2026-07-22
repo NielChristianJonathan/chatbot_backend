@@ -8,7 +8,6 @@ const getHistory = async({chatSession}) => {
 }
 
 const pushMessage = async ({chatSession, message, answer}) => {
-    console.log("HALO")
     try {
         const cache = redis.getRedis()
         await cache.rPush(`chat:${chatSession}`, JSON.stringify(message));

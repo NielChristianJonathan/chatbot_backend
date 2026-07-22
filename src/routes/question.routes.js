@@ -8,6 +8,6 @@ const { checkAIToken } = require('../middleware/checkAIToken');
 
 console.log(questionController);
 router.get('/faq', validationAccessToken, questionController.getFaq)
-router.post('/', validationAccessToken, createChatSession, checkAIToken,questionController.chat)
+router.post('/:chatSession', validationAccessToken, checkAIToken,questionController.chat)
 
 module.exports = router

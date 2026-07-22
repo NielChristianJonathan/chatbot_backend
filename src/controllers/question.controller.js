@@ -13,11 +13,14 @@ const getFaq = async (req, res, next) => {
 
 const chat = async (req, res, next) => {
     try {
+        console.log("======================================")
+        console.log("Masuk Sini")
+        console.log("======================================")
         const username = req.user.username;
         const terminalCode = req.user.terminalCode;
         const userMessage = req.body.message?.trim();
         const terminalAccess = req.user.terminalAccess;
-        const chatSession = req.headers["chatsession"]
+        const {chatSession} = req.params;
         console.log(chatSession);
         const result = await chatService.chatService({userMessage, terminalCode, terminalAccess, username, chatSession});
         console.log(result);
