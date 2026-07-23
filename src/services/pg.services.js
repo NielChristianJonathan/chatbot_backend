@@ -120,8 +120,8 @@ const inputMessage = async({sessionId, username, role, context, tools = null, to
         console.log(`eval_count:`, eval_count)
         console.log(`totalToken:`, totalToken)
         await poolPg.query(`
-            INSERT INTO messages (chatsession, username, role, context, tools, tool_result, rag, prompt_eval_count, eval_count, total_token)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+            INSERT INTO messages (chatsession, username, role, context, tools, tool_result, rag, prompt_eval_count, eval_count, total_token, createdate)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, now())
             `, [sessionId, username, role, context, tools, tool_result, rag, prompt_eval_count, eval_count, totalToken]
         );
         console.log("Message berhasil dimasukkan")
@@ -204,11 +204,26 @@ const addKeyMessages = async ({username, chatSession, userMessage}) => {
     }
 }
 
+// Untuk newChat, ditaroh di pendingMessage
+const getOneKeyMessage = async({username, chatSession}) => {
+    try {
+        const result = await poolPg.query(`
+            select * from keymessages
+            where username = $1 and chatsession = $2
+            `, [username, chatSession]
+        )
+        return result.rows[0]
+    } catch (error) {   
+        throw new AppError()
+    }
+}
+
 const getKeyMessage = async ({username}) => {
     try {
         result = await poolPg.query(`
-            select chatsession, title, createdate from keymessages
-            where username = $1;
+            select chatsession, title, createdate, username from keymessages
+            where username = $1
+            order by createdate asc;
             `, [username]
         )
         return result.rows
@@ -225,6 +240,7 @@ const getMessage = async ({username, chatSession}) => {
             from messages 
             where username = $1 
             and chatsession = $2
+            order by createdate asc;
             `, [username, chatSession]
         )
         return result.rows
@@ -286,4 +302,23 @@ const deleteKeyMessage = async({username, chatSession}) => {
     } 
 }
 
-module.exports = { search_nearest_vector, input_data, getDataUser, getUsername, inputUser, getTerminalCode, inputMessage, updateDate, getRemainingToken, minusToken, addKeyMessages, getKeyMessage, getMessage, getPlan, upgradePlan, deleteKeyMessage }
+const deleteMessage = async ({username, chatSession}) => {
+    try {
+        await poolPg.query(`
+            delete from messages where username = $1 and chatsession = $2
+            `, [username, chatSession]
+        )
+    } catch (error) {
+        throw new AppError("Failed Database", 500)
+    }
+}
+
+const getChatSession = async({username, chatSession}) => {
+    try {
+        
+    } catch (error) {
+        throw new AppError("Failed Database", 500)
+    }
+}
+
+module.exports = { search_nearest_vector, input_data, getDataUser, getUsername, inputUser, getTerminalCode, inputMessage, updateDate, getRemainingToken, minusToken, addKeyMessages, getOneKeyMessage, getKeyMessage, getMessage, getPlan, upgradePlan, deleteKeyMessage, deleteMessage }

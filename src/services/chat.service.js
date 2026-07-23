@@ -23,45 +23,60 @@ const chatService = async (args) => {
         };
         const history = await getHistory({chatSession})
         
-        let ans = `null`
+        let ans = `GABISA JAWAB`
+
+        await inputMessage({
+            sessionId: chatSession,
+            username,
+            role: USER,
+            context: userMessage
+        })
         
         // ==============================================================================================================
-        const embContext = await getOrInitKeyEmbed();
+        // const embContext = await getOrInitKeyEmbed();
         
-        const embedMessage = await ollamaEmbed(userMessage);
-        const role = getRole(embedMessage, embContext);
-        console.log(role)
+        // const embedMessage = await ollamaEmbed(userMessage);
+        // const role = getRole(embedMessage, embContext);
+        // console.log(role)
 
-        if (role === "TOOLS") {
-            const embedTool = await getOrInitToolEmbed();
-            const tools = getTool(embedMessage, embedTool);
-            ans = await ollamaChatTool({base_prompt, prompt: userMessage, temperature, tools, history, username, chatSession});
-        } else if ( role === "RAG" ){
-            console.log(`Masuk RAG`)
-            const injectPrompt = await search_nearest_vector(embedMessage);
-            ans = await ollamaChatRAG({base_prompt, prompt: userMessage, temperature, context: injectPrompt, history, chatSession, username});
-        } else if ( role === "BOTH") {
-            console.log("BOOOTTHHHHHH")
-            const embedTool = await getOrInitToolEmbed();
-            const tools = getTool(embedMessage, embedTool)
-            const injectPrompt = await search_nearest_vector(embedMessage);
-            ans = await ollamaChatTool({base_prompt, prompt: userMessage, temperature, tools, history, terminalCode, username, chatSession});
-            // ans = await ollamaChatBoth({base_prompt, prompt: userMessage, 0.1, injectPrompt, tools, history, username, AccessTokenn})
-        } else {
-            base_prompt = `${base_prompt}`
-            ans = await ollamaChat({base_prompt, prompt: userMessage, temperature, history, chatSession, username})
-        }
+        // if (role === "TOOLS") {
+        //     const embedTool = await getOrInitToolEmbed();
+        //     const tools = getTool(embedMessage, embedTool);
+        //     ans = await ollamaChatTool({base_prompt, prompt: userMessage, temperature, tools, history, username, chatSession});
+        // } else if ( role === "RAG" ){
+        //     console.log(`Masuk RAG`)
+        //     const injectPrompt = await search_nearest_vector(embedMessage);
+        //     ans = await ollamaChatRAG({base_prompt, prompt: userMessage, temperature, context: injectPrompt, history, chatSession, username});
+        // } else if ( role === "BOTH") {
+        //     console.log("BOOOTTHHHHHH")
+        //     const embedTool = await getOrInitToolEmbed();
+        //     const tools = getTool(embedMessage, embedTool)
+        //     const injectPrompt = await search_nearest_vector(embedMessage);
+        //     ans = await ollamaChatTool({base_prompt, prompt: userMessage, temperature, tools, history, terminalCode, username, chatSession});
+        //     // ans = await ollamaChatBoth({base_prompt, prompt: userMessage, 0.1, injectPrompt, tools, history, username, AccessTokenn})
+        // } else {
+        //     base_prompt = `${base_prompt}`
+        //     ans = await ollamaChat({base_prompt, prompt: userMessage, temperature, history, chatSession, username})
+        // }
         const answer = {
             role: ASSISTANT,
             content: ans
         }
         // ==============================================================================================================
         await pushMessage({chatSession, message, answer})
-        
+
+        // ################################
+        await inputMessage({
+            sessionId: chatSession,
+            username,
+            role: ASSISTANT,
+            context: "GABISA JAWAB"
+        })
+        // ################################
         
 
 
-        return {username, role: ASSISTANT, content: ans}
+        return {username, role: ASSISTANT, content: ans, chatsession: chatSession}
     } catch (err) {
         throw err
     }
